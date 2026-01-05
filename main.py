@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from sqlmodel import Session, select
@@ -44,10 +44,28 @@ def on_startup():
 def join_event(join_code: str, payload: JoinRequest, session: Session = Depends(get_session)):
     event = session.exec(select(Event).where(Event.join_code == join_code)).first()
     if not event:
-        return {"error": "Event not found"}
-
+        raise HTTPException(status_code=404, detail="Event not found")
+    existing = session.exec(
+        select(Participant).where(
+            Participant.event_id == event.id,
+            Participant.email == payload.email,
+        )
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Participant with this email already joined the event")
+    
     participant = Participant(event_id=event.id, email=payload.email)
     session.add(participant)
     session.commit()
     session.refresh(participant)
     return participant
+
+@app.get("/events/{join_code}/participants")
+def list_participants(join_code: str, session: Session = Depends(get_session)):
+    event = session.exec(select(Event).where(Event.join_code == join_code)).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    participants = session.exec(
+        select(Participant).where(Participant.event_id == event.id)
+    ).all()
+    return {"event_id": event.id, "join_code": join_code, "participants": participants}
