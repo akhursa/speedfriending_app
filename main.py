@@ -39,3 +39,15 @@ def create_event(payload: EventCreate, session: Session = Depends(get_session)):
 def on_startup():
     import models  # гарантируем регистрацию таблиц
     create_db_and_tables()
+
+@app.post("/events/{join_code}/join")
+def join_event(join_code: str, payload: JoinRequest, session: Session = Depends(get_session)):
+    event = session.exec(select(Event).where(Event.join_code == join_code)).first()
+    if not event:
+        return {"error": "Event not found"}
+
+    participant = Participant(event_id=event.id, email=payload.email)
+    session.add(participant)
+    session.commit()
+    session.refresh(participant)
+    return participant
