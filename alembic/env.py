@@ -1,6 +1,13 @@
+import os
+import sys
+
+# чтобы imports работали при запуске alembic из корня проекта
+sys.path.insert(0, os.path.abspath(os.getcwd()))
+
 from sqlmodel import SQLModel
-from db import engine
 import models
+from db import engine
+
 
 from logging.config import fileConfig
 
@@ -48,8 +55,9 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        render_as_batch=True,   # важно для SQLite
+        compare_type=True,      # чтобы Alembic видел изменения типов/nullable
     )
-
     with context.begin_transaction():
         context.run_migrations()
 
@@ -59,7 +67,7 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection, target_metadata=target_metadata, render_as_batch=True, compare_type=True,
         )
 
         with context.begin_transaction():

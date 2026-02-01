@@ -13,6 +13,8 @@ class Event(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(Minsk_tz))
     status: str = Field(default="created")
     current_round: int = Field(default=0)
+    phase: str = Field(default="lobby")
+    phase_ends_at: Optional[datetime] = None
 class Participant(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     event_id: int = Field(index=True, foreign_key="event.id")
@@ -36,3 +38,10 @@ class Pairing(SQLModel, table=True):
     p2_id: Optional[int] = Field(default=None, foreign_key="participant.id")  # None = ожидание
     status: str = Field(default="assigned")  # assigned/met/missed
     met_at: Optional[datetime] = Field(default=None)
+
+class PairHistory(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    event_id: int = Field(foreign_key="event.id", index=True)
+    a_id: int = Field(foreign_key="participant.id")
+    b_id: int = Field(foreign_key="participant.id")
+    round_number: int = Field(index=True)
