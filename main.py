@@ -92,6 +92,7 @@ from datetime import timedelta
 
 
 from sqlmodel import select
+from sqlalchemy import insert as sa_insert
 
 
 def make_pairs(
@@ -135,17 +136,21 @@ def make_pairs(
             used.add(partner)
             pairs.append((p, partner))
 
-            session.add(
-                PairHistory(
-                    event_id=event_id,
-                    a_id=min(p, partner),
-                    b_id=max(p, partner),
-                    round_number=round_number,
-                )
+            a = min(p, partner)
+            b = max(p, partner)
+
+            # Try to insert pairhistory in a DB-safe way. For SQLite use INSERT OR IGNORE
+            stmt = sa_insert(PairHistory.__table__).values(
+                event_id=event_id, a_id=a, b_id=b, round_number=round_number
             )
-            met.add(
-                (min(p, partner), max(p, partner))
-            )  # чтобы в рамках одного раунда тоже не повторить
+            # SQLite supports OR IGNORE
+            try:
+                stmt = stmt.prefix_with("OR IGNORE")
+            except Exception:
+                pass
+
+            session.exec(stmt)
+            met.add((a, b))  # чтобы в рамках одного раунда тоже не повторить
         else:
             pairs.append((p, None))
 

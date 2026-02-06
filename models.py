@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 from sqlmodel import SQLModel, Field
 from zoneinfo import ZoneInfo
+from sqlalchemy import UniqueConstraint, Index
 
 Minsk_tz = ZoneInfo("Europe/Minsk")
 
@@ -45,3 +46,9 @@ class PairHistory(SQLModel, table=True):
     a_id: int = Field(foreign_key="participant.id")
     b_id: int = Field(foreign_key="participant.id")
     round_number: int = Field(index=True)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("event_id", "a_id", "b_id", name="uq_pairhistory_event_a_b"),
+        Index("ix_pairhistory_event_a", "event_id", "a_id"),
+    )
