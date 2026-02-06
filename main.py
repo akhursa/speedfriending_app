@@ -355,9 +355,7 @@ def event_timer(join_code: str, session: Session = Depends(get_session)):
         return {"phase": "lobby", "seconds_left": None, "round": 0}
 
     round_obj = session.exec(
-        select(Round).where(
-            Round.event_id == event.id, Round.number == current_round
-        )
+        select(Round).where(Round.event_id == event.id, Round.number == current_round)
     ).first()
     if not round_obj:
         return {"phase": "running", "seconds_left": None, "round": event.current_round}
