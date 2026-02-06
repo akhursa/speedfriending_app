@@ -47,7 +47,8 @@ def create_event(payload: EventCreate, session: Session = Depends(get_session)):
 def on_startup():
     import models  # гарантируем регистрацию таблиц
 
-    # create_db_and_tables()
+    # создаём БД и таблицы при старте
+    create_db_and_tables()
 
 
 @app.post("/events/{join_code}/join")
@@ -163,7 +164,8 @@ def start_round(join_code: str, session: Session = Depends(get_session)):
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     # start_round запускает ТОЛЬКО первый раунд
-    if event.current_round and event.current_round > 0:
+    current_round = int(event.current_round or 0)
+    if current_round > 0:
         raise HTTPException(
             status_code=400, detail="Event already started. Use /next_round."
         )
@@ -177,7 +179,7 @@ def start_round(join_code: str, session: Session = Depends(get_session)):
         raise HTTPException(status_code=400, detail="Need at least 2 participants")
 
     # увеличиваем номер раунда
-    next_round_num = event.current_round + 1
+    next_round_num = current_round + 1
     event.current_round = next_round_num
     event.status = "running"
 
@@ -186,9 +188,6 @@ def start_round(join_code: str, session: Session = Depends(get_session)):
 
     event.phase = "talk"
     event.phase_ends_at = ends_at
-
-    started_at = datetime.now(MINSK_TZ)
-    ends_at = started_at + timedelta(minutes=8)
 
     round_obj = Round(
         event_id=event.id,
@@ -346,12 +345,13 @@ def event_timer(join_code: str, session: Session = Depends(get_session)):
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    if event.current_round <= 0:
+    current_round = int(event.current_round or 0)
+    if current_round <= 0:
         return {"phase": "lobby", "seconds_left": None, "round": 0}
 
     round_obj = session.exec(
         select(Round).where(
-            Round.event_id == event.id, Round.number == event.current_round
+            Round.event_id == event.id, Round.number == current_round
         )
     ).first()
     if not round_obj:
@@ -390,7 +390,7 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
     if len(participants) < 2:
         raise HTTPException(status_code=400, detail="Need at least 2 participants")
 
-    new_round_number = int(event.current_round) + 1
+    new_round_number = int(event.current_round or 0) + 1
 
     started_at = datetime.now(MINSK_TZ)
     ends_at = started_at + timedelta(minutes=8)
