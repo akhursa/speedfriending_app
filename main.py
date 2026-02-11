@@ -16,14 +16,11 @@ app = FastAPI()
 def read_root():
     return "<h1>Welcome to the Speed Friending application!</h1>"
 
-
 class EventCreate(BaseModel):
     title: str
 
-
 class JoinRequest(BaseModel):
     email: str
-
 
 def generate_join_code(n: int = 6) -> str:
     alphabet = string.ascii_uppercase + string.digits
@@ -393,6 +390,26 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
     if len(participants) < 2:
         raise HTTPException(status_code=400, detail="Need at least 2 participants")
 
+    current_phase = getattr(event, "phase", "talk")
+
+    # If currently in talk phase, transition to break (1 minute)
+    if current_phase == "talk":
+        now = datetime.now(MINSK_TZ)
+        break_ends_at = now + timedelta(minutes=1)
+        event.phase = "break"
+        event.phase_ends_at = break_ends_at
+        session.add(event)
+        session.commit()
+        return {
+            "event_id": event.id,
+            "round": event.current_round,
+            "phase": "break",
+            "started_at": now,
+            "ends_at": break_ends_at,
+            "message": "One-minute break started. No pairings created yet.",
+        }
+
+    # If in break or lobby phase, start next round (talk phase)
     new_round_number = int(event.current_round or 0) + 1
 
     started_at = datetime.now(MINSK_TZ)
