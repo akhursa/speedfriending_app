@@ -113,13 +113,44 @@ def make_pairs(
     pairs = []
     used = set()
 
+    # If odd number of participants, pick who should rest this round
+    # (the one who has rested the least so far, for fair rotation)
+    rest_person = None
+    if len(ids) % 2 == 1:
+        rest_counts = {}
+        for pid in participant_ids:
+            # Count how many times this participant has rested (appeared with p2_id=None)
+            rest_count = len(
+                session.exec(
+                    select(Pairing).where(
+                        Pairing.event_id == event_id,
+                        Pairing.p1_id == pid,
+                        Pairing.p2_id == None,
+                    )
+                ).all()
+            )
+            rest_counts[pid] = rest_count
+
+        # Pick the participant with the least rests.
+        # For ties, rotate fairly using round_number and sorted order (by pid).
+        min_rest = min(rest_counts.values())
+        candidates = sorted([pid for pid in participant_ids if rest_counts[pid] == min_rest])
+        # Use round_number to deterministically rotate among tied candidates
+        rest_person = candidates[(round_number - 1) % len(candidates)]
+
     for p in ids:
         if p in used:
             continue
 
+        # If this is the designated rest person, rest this round
+        if p == rest_person:
+            pairs.append((p, None))
+            used.add(p)
+            continue
+
         partner = None
         for c in ids:
-            if c == p or c in used:
+            if c == p or c in used or c == rest_person:
                 continue
 
             key = (min(p, c), max(p, c))
@@ -149,6 +180,7 @@ def make_pairs(
             session.exec(stmt)
             met.add((a, b))  # чтобы в рамках одного раунда тоже не повторить
         else:
+            # This should not happen if rest_person is correctly identified
             pairs.append((p, None))
 
     # Flush to ensure PairHistory inserts are persisted
@@ -158,8 +190,12 @@ def make_pairs(
 
 from datetime import datetime
 from zoneinfo import ZoneInfo
+import os
 
 MINSK_TZ = ZoneInfo("Europe/Minsk")
+
+# Configurable break duration (default 60 seconds, can be set via env var for testing)
+BREAK_DURATION_SECONDS = int(os.getenv("BREAK_DURATION_SECONDS", "60"))
 
 
 @app.post("/events/{join_code}/start_round")
@@ -396,9 +432,9 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
     current_phase = getattr(event, "phase", "talk")
     now = datetime.now(MINSK_TZ)
 
-    # If currently in talk phase, transition to break (1 minute)
+    # If currently in talk phase, transition to break
     if current_phase == "talk":
-        break_ends_at = now + timedelta(minutes=1)
+        break_ends_at = now + timedelta(seconds=BREAK_DURATION_SECONDS)
         event.phase = "break"
         event.phase_ends_at = break_ends_at
         session.add(event)
@@ -409,7 +445,7 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
             "phase": "break",
             "started_at": now,
             "ends_at": break_ends_at,
-            "message": "One-minute break started. No pairings created yet.",
+            "message": f"Break started ({BREAK_DURATION_SECONDS} seconds). No pairings created yet.",
         }
 
     # If in break phase, validate that break time has elapsed before advancing
