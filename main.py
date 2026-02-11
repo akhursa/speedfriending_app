@@ -151,6 +151,8 @@ def make_pairs(
         else:
             pairs.append((p, None))
 
+    # Flush to ensure PairHistory inserts are persisted
+    session.flush()
     return pairs
 
 
@@ -355,7 +357,8 @@ def event_timer(join_code: str, session: Session = Depends(get_session)):
         select(Round).where(Round.event_id == event.id, Round.number == current_round)
     ).first()
     if not round_obj:
-        return {"phase": "running", "seconds_left": None, "round": event.current_round}
+        # Round record not found; return 0 seconds (stale state)
+        return {"phase": "running", "seconds_left": 0, "round": current_round}
 
     now = datetime.now(MINSK_TZ)
     ends_at = round_obj.ends_at
@@ -391,10 +394,10 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
         raise HTTPException(status_code=400, detail="Need at least 2 participants")
 
     current_phase = getattr(event, "phase", "talk")
+    now = datetime.now(MINSK_TZ)
 
     # If currently in talk phase, transition to break (1 minute)
     if current_phase == "talk":
-        now = datetime.now(MINSK_TZ)
         break_ends_at = now + timedelta(minutes=1)
         event.phase = "break"
         event.phase_ends_at = break_ends_at
@@ -408,6 +411,19 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
             "ends_at": break_ends_at,
             "message": "One-minute break started. No pairings created yet.",
         }
+
+    # If in break phase, validate that break time has elapsed before advancing
+    if current_phase == "break":
+        break_ends_at = getattr(event, "phase_ends_at", None)
+        if break_ends_at:
+            # Ensure both are timezone-aware for comparison
+            if break_ends_at.tzinfo is None:
+                break_ends_at = break_ends_at.replace(tzinfo=MINSK_TZ)
+            if break_ends_at > now:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Break still in progress. Must wait {int((break_ends_at - now).total_seconds())} more seconds.",
+                )
 
     # If in break or lobby phase, start next round (talk phase)
     new_round_number = int(event.current_round or 0) + 1
