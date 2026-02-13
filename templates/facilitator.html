@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed Friending Facilitator - {{ title }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header-info {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .info-item {
+            text-align: center;
+        }
+        
+        .info-label {
+            font-size: 12px;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .info-value {
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        
+        .timer {
+            font-size: 32px;
+            font-weight: bold;
+        }
+        
+        .timer.warning {
+            color: #ffd700;
+        }
+        
+        .timer.critical {
+            color: #ff4444;
+        }
+        
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            padding: 30px;
+        }
+        
+        @media (max-width: 1200px) {
+            .content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        h2 {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #764ba2;
+            color: white;
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background: #6a3b8a;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(118, 75, 162, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .participants-list {
+            list-style: none;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .participant-item {
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .participant-email {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .pair-count {
+            background: #667eea;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .pairings-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .pairings-table thead {
+            background: #667eea;
+            color: white;
+        }
+        
+        .pairings-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            border: none;
+        }
+        
+        .pairings-table td {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .pairings-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .pairings-table tbody tr:hover {
+            background: #f9f9f9;
+        }
+        
+        .resting {
+            background: #fff3cd;
+            font-style: italic;
+            color: #664d03;
+        }
+        
+        .resting .badge {
+            background: #ffc107;
+            color: #000;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-assigned {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .status-loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .status-error {
+            color: #d32f2f;
+            padding: 20px;
+            background: #ffebee;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        
+        .empty-message {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ {{ title }}</h1>
+            <div id="status-message" style="font-size: 14px; opacity: 0.9;">Loading...</div>
+            <div class="header-info">
+                <div class="info-item">
+                    <div class="info-label">Round</div>
+                    <div class="info-value" id="current-round">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Phase</div>
+                    <div class="info-value" id="current-phase">-</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Time Left</div>
+                    <div class="timer" id="timer">--:--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Participants</div>
+                    <div class="info-value" id="participant-count">-</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div>
+                <div class="controls">
+                    <button id="start-btn" class="btn-primary" onclick="startRound()">Start Round</button>
+                    <button id="next-btn" class="btn-secondary" onclick="nextRound()">Next Round</button>
+                </div>
+                
+                <h2>Participants (total: <span id="list-count">0</span>)</h2>
+                <ul class="participants-list" id="participants-list">
+                    <li class="empty-message">No participants yet</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h2>Current Round Pairings</h2>
+                <div id="pairings-container" class="status-loading">Loading pairings...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const JOIN_CODE = '{{ join_code }}';
+        const API_BASE = '/events/' + JOIN_CODE;
+        let currentData = null;
+        let timerInterval = null;
+        
+        async function loadDashboard() {
+            try {
+                const response = await fetch(API_BASE + '/dashboard');
+                const data = await response.json();
+                currentData = data;
+                updateUI(data);
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                document.getElementById('pairings-container').innerHTML = 
+                    '<div class="status-error">Error loading data: ' + error.message + '</div>';
+            }
+        }
+        
+        function updateUI(data) {
+            const event = data.event;
+            const participants = data.participants;
+            const pairings = data.pairings;
+            
+            // Update header
+            document.getElementById('current-round').textContent = event.current_round || '-';
+            document.getElementById('current-phase').textContent = event.phase.toUpperCase();
+            document.getElementById('participant-count').textContent = participants.length;
+            
+            // Update status message
+            const status = event.status === 'created' ? 'Not Started' : 
+                          event.status === 'running' ? 'Running' : 'Unknown';
+            document.getElementById('status-message').textContent = 'Status: ' + status;
+            
+            // Update timer
+            updateTimer(event.seconds_left, event.phase);
+            
+            // Update buttons
+            document.getElementById('start-btn').disabled = event.current_round > 0;
+            document.getElementById('next-btn').disabled = event.current_round <= 0;
+            
+            // Update participants list
+            updateParticipantsList(participants);
+            
+            // Update pairings table
+            updatePairingsTable(pairings);
+        }
+        
+        function updateTimer(seconds, phase) {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            const timerEl = document.getElementById('timer');
+            
+            function formatTime(s) {
+                const mins = Math.floor(s / 60);
+                const secs = s % 60;
+                return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+            }
+            
+            if (phase === 'lobby') {
+                timerEl.textContent = '--:--';
+                timerEl.className = '';
+                return;
+            }
+            
+            let remaining = seconds;
+            timerEl.textContent = formatTime(remaining);
+            
+            timerInterval = setInterval(() => {
+                remaining--;
+                if (remaining < 0) remaining = 0;
+                
+                timerEl.textContent = formatTime(remaining);
+                timerEl.className = remaining <= 10 ? 'critical' : remaining <= 30 ? 'warning' : '';
+                
+                if (remaining === 0) {
+                    clearInterval(timerInterval);
+                }
+            }, 1000);
+        }
+        
+        function updateParticipantsList(participants) {
+            const listEl = document.getElementById('participants-list');
+            document.getElementById('list-count').textContent = participants.length;
+            
+            if (participants.length === 0) {
+                listEl.innerHTML = '<li class="empty-message">No participants yet</li>';
+                return;
+            }
+            
+            listEl.innerHTML = participants.map(p => `
+                <li class="participant-item">
+                    <span class="participant-email">${p.email}</span>
+                </li>
+            `).join('');
+        }
+        
+        function updatePairingsTable(pairings) {
+            const container = document.getElementById('pairings-container');
+            
+            if (pairings.length === 0) {
+                container.innerHTML = '<div class="empty-message">No pairings yet. Start a round to create pairings.</div>';
+                return;
+            }
+            
+            let html = '<table class="pairings-table"><thead><tr><th>#</th><th>Participant 1</th><th>Participant 2</th><th>Status</th></tr></thead><tbody>';
+            
+            pairings.forEach((pairing, idx) => {
+                const p1Email = pairing.p1 ? pairing.p1.email : 'Unknown';
+                const p2Email = pairing.p2 ? pairing.p2.email : '-';
+                const isResting = !pairing.p2;
+                
+                if (isResting) {
+                    html += `<tr class="resting">
+                        <td>${idx + 1}</td>
+                        <td><strong>${p1Email}</strong></td>
+                        <td><span class="badge">RESTING</span></td>
+                        <td><span class="status-badge status-assigned">${pairing.status || 'assigned'}</span></td>
+                    </tr>`;
+                } else {
+                    html += `<tr>
+                        <td>${idx + 1}</td>
+                        <td><strong>${p1Email}</strong></td>
+                        <td><strong>${p2Email}</strong></td>
+                        <td><span class="status-badge status-assigned">${pairing.status || 'assigned'}</span></td>
+                    </tr>`;
+                }
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        async function startRound() {
+            if (!confirm('Start Round 1?')) return;
+            
+            const startBtn = document.getElementById('start-btn');
+            const originalText = startBtn.textContent;
+            startBtn.disabled = true;
+            
+            try {
+                const response = await fetch(API_BASE + '/start_round', {method: 'POST'});
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Unknown error');
+                }
+                
+                alert('Round started! ' + data.pairings_count + ' pairings created.');
+                loadDashboard();
+            } catch (error) {
+                alert('Error starting round: ' + error.message);
+                startBtn.disabled = false;
+            }
+        }
+        
+        async function nextRound() {
+            if (!confirm('Proceed to next round?')) return;
+            
+            const nextBtn = document.getElementById('next-btn');
+            const originalText = nextBtn.textContent;
+            nextBtn.disabled = true;
+            
+            try {
+                const response = await fetch(API_BASE + '/next_round', {method: 'POST'});
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Unknown error');
+                }
+                
+                if (data.message) {
+                    alert(data.message);
+                } else {
+                    alert('Round advanced! ' + data.pairings_count + ' pairings created.');
+                }
+                
+                loadDashboard();
+            } catch (error) {
+                alert('Error advancing round: ' + error.message);
+                nextBtn.disabled = false;
+            }
+        }
+        
+        // Initial load and auto-refresh
+        loadDashboard();
+        setInterval(loadDashboard, 3000); // Refresh every 3 seconds
+    </script>
+</body>
+</html>

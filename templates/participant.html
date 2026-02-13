@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed Friending - {{ safe_email }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header {
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .timer {
+            font-size: 48px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 30px 0;
+            font-family: 'Monaco', 'Courier New', monospace;
+        }
+        
+        .timer.warning {
+            color: #ffc107;
+        }
+        
+        .timer.critical {
+            color: #ff4444;
+        }
+        
+        .phase-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 20px;
+        }
+        
+        .phase-talk {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .phase-break {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .phase-lobby {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .partner-section {
+            background: #f8f9ff;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+        }
+        
+        .partner-label {
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        
+        .partner-email {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            word-break: break-word;
+        }
+        
+        .no-partner-yet {
+            color: #999;
+            font-style: italic;
+            font-size: 16px;
+        }
+        
+        .action-buttons {
+            display: grid;
+            gap: 12px;
+            margin: 30px 0;
+        }
+        
+        button {
+            padding: 16px 32px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .status-indicator {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .status-met {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-pending {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 40px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .modal-content h2 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .modal-content .next-partner {
+            font-size: 20px;
+            color: #667eea;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 8px;
+        }
+        
+        .modal-content button {
+            margin-top: 20px;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: left;
+            margin: 20px 0;
+            font-size: 14px;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ Speed Friending</h1>
+            <p id="event-title">Loading event...</p>
+        </div>
+        
+        <div id="phase-badge" class="phase-badge">-</div>
+        
+        <div class="timer" id="timer">--:--</div>
+        
+        <div class="partner-section">
+            <div class="partner-label">Your Current Partner</div>
+            <div id="partner-display" class="no-partner-yet">Waiting for round to start...</div>
+        </div>
+        
+        <div class="action-buttons">
+            <button id="met-btn" class="btn-primary" onclick="markMet()" style="display: none;">
+                ✓ We Have Met
+            </button>
+        </div>
+        
+        <div id="status-indicator" style="display: none;" class="status-indicator status-pending">
+            ✓ Status: Marked as Met
+        </div>
+        
+        <div class="info-box">
+            <strong>How to use:</strong>
+            <ul style="margin-top: 10px; list-style-position: inside;">
+                <li>When you meet your partner, click "We Have Met"</li>
+                <li>The timer shows how much time is left</li>
+                <li>When the round ends, you'll see your next partner</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Notification Modal for Round End -->
+    <div id="round-end-modal" class="modal">
+        <div class="modal-content">
+            <h2>🎉 Round Finished!</h2>
+            <p>Get ready for the next pairing:</p>
+            <div class="next-partner" id="next-partner-info">-</div>
+            <button class="btn-primary" onclick="closeRoundModal()">Continue</button>
+        </div>
+    </div>
+    
+    <script>
+        const JOIN_CODE = '{{ join_code }}';
+        const USER_EMAIL = '{{ safe_email }}';
+        const API_BASE = '/events/' + JOIN_CODE;
+        
+        let currentData = null;
+        let lastRound = 0;
+        let lastPhase = 'lobby';
+        let timerInterval = null;
+        
+        async function loadData() {
+            try {
+                const response = await fetch(API_BASE + '/my_match?email=' + encodeURIComponent(USER_EMAIL));
+                const data = await response.json();
+                updateUI(data);
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+        
+        function updateUI(data) {
+            const currentRound = data.current_round || 0;
+            const status = data.status || 'waiting';
+            
+            // Check if round has changed - if so, show modal
+            if (currentRound > lastRound && lastRound > 0 && lastPhase === 'break') {
+                showRoundEndModal(data);
+            }
+            
+            lastRound = currentRound;
+            
+            // Fetch full event state for timer and phase
+            fetchEventState();
+            
+            // Update partner display based on status
+            const partnerDisplay = document.getElementById('partner-display');
+            const metBtn = document.getElementById('met-btn');
+            const statusIndicator = document.getElementById('status-indicator');
+            
+            if (status === 'no_pair') {
+                partnerDisplay.innerHTML = '<span class="no-partner-yet">No pairing this round<br>(You are resting)</span>';
+                metBtn.style.display = 'none';
+                statusIndicator.style.display = 'none';
+            } else if (status === 'paired') {
+                partnerDisplay.textContent = data.partner.email;
+                metBtn.style.display = 'block';
+                statusIndicator.style.display = 'none'; // Will show when marked
+            } else {
+                partnerDisplay.innerHTML = '<span class="no-partner-yet">Waiting for first round...</span>';
+                metBtn.style.display = 'none';
+                statusIndicator.style.display = 'none';
+            }
+        }
+        
+        async function fetchEventState() {
+            try {
+                const response = await fetch(API_BASE + '/state');
+                const state = await response.json();
+                
+                document.getElementById('event-title').textContent = state.join_code + ' - ' + state.status.toUpperCase();
+                
+                const phaseBadge = document.getElementById('phase-badge');
+                const phase = state.phase || 'lobby';
+                lastPhase = phase;
+                
+                phaseBadge.textContent = phase.toUpperCase();
+                phaseBadge.className = 'phase-badge phase-' + phase;
+                
+                updateTimer(state.seconds_left, phase);
+            } catch (error) {
+                console.error('Error loading event state:', error);
+            }
+        }
+        
+        function updateTimer(seconds, phase) {
+            const timerEl = document.getElementById('timer');
+            
+            function formatTime(s) {
+                const mins = Math.floor(s / 60);
+                const secs = s % 60;
+                return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+            }
+            
+            if (timerInterval) clearInterval(timerInterval);
+            
+            if (phase === 'lobby') {
+                timerEl.textContent = '--:--';
+                timerEl.className = 'timer';
+                return;
+            }
+            
+            let remaining = seconds;
+            timerEl.textContent = formatTime(remaining);
+            
+            timerInterval = setInterval(() => {
+                remaining--;
+                if (remaining < 0) remaining = 0;
+                
+                timerEl.textContent = formatTime(remaining);
+                
+                // Color warning: yellow at 30s, red at 10s
+                timerEl.className = 'timer';
+                if (remaining <= 10) {
+                    timerEl.classList.add('critical');
+                } else if (remaining <= 30) {
+                    timerEl.classList.add('warning');
+                }
+                
+                if (remaining === 0) {
+                    clearInterval(timerInterval);
+                }
+            }, 1000);
+        }
+        
+        async function markMet() {
+            const btn = document.getElementById('met-btn');
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(API_BASE + '/mark_met', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email: USER_EMAIL})
+                });
+                
+                const result = await response.json();
+                if (response.ok) {
+                    // Show status indicator
+                    const statusIndicator = document.getElementById('status-indicator');
+                    statusIndicator.style.display = 'block';
+                    statusIndicator.classList.add('status-met');
+                    statusIndicator.textContent = '✓ Status: Marked as Met';
+                    
+                    // Hide button
+                    document.getElementById('met-btn').style.display = 'none';
+                } else {
+                    alert('Error: ' + (result.detail || 'Unknown error'));
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                alert('Error marking as met: ' + error.message);
+                btn.disabled = false;
+            }
+        }
+        
+        function showRoundEndModal(matchData) {
+            const modal = document.getElementById('round-end-modal');
+            const nextPartnerInfo = document.getElementById('next-partner-info');
+            
+            // Try to fetch next round data or use current data if just changed
+            if (matchData.status === 'paired') {
+                nextPartnerInfo.textContent = matchData.partner.email;
+                modal.classList.add('show');
+                
+                // Auto-close after 5 seconds
+                setTimeout(closeRoundModal, 5000);
+            }
+        }
+        
+        function closeRoundModal() {
+            const modal = document.getElementById('round-end-modal');
+            modal.classList.remove('show');
+        }
+        
+        // Initial load and auto-refresh
+        loadData();
+        setInterval(loadData, 2000); // Refresh every 2 seconds
+    </script>
+</body>
+</html>

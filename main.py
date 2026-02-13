@@ -4,17 +4,25 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 import secrets
 import string
+from pathlib import Path
+from jinja2 import Environment, FileSystemLoader
 
 from db import create_db_and_tables, get_session
 from models import Event, Participant, Round, Pairing, PairHistory
+from validators import validate_email, validate_join_code, validate_event_title
 
 
 app = FastAPI()
 
+# Set up Jinja2 template environment
+templates_dir = Path(__file__).parent / "templates"
+jinja_env = Environment(loader=FileSystemLoader(str(templates_dir)))
+
 
 @app.get("/", response_class=HTMLResponse)
 def read_root():
-    return "<h1>Welcome to the Speed Friending application!</h1>"
+    template = jinja_env.get_template("index.html")
+    return template.render()
 
 class EventCreate(BaseModel):
     title: str
@@ -29,15 +37,30 @@ def generate_join_code(n: int = 6) -> str:
 
 @app.post("/events")
 def create_event(payload: EventCreate, session: Session = Depends(get_session)):
+    # Validate event title
+    is_valid, error_msg = validate_event_title(payload.title)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+    
     join_code = generate_join_code()
     while session.exec(select(Event).where(Event.join_code == join_code)).first():
         join_code = generate_join_code()
 
-    event = Event(title=payload.title, join_code=join_code)
+    event = Event(title=payload.title.strip(), join_code=join_code)
     session.add(event)
     session.commit()
     session.refresh(event)
     return event
+
+
+@app.get("/join", response_class=HTMLResponse)
+def join_page(code: str = None):
+    """
+    Join event page where participants can enter their email and join code.
+    The code can be provided as a query parameter for direct joining.
+    """
+    template = jinja_env.get_template("join.html")
+    return template.render()
 
 
 @app.on_event("startup")
@@ -52,13 +75,25 @@ def on_startup():
 def join_event(
     join_code: str, payload: JoinRequest, session: Session = Depends(get_session)
 ):
+    # Validate inputs
+    code_valid, code_error = validate_join_code(join_code)
+    if not code_valid:
+        raise HTTPException(status_code=400, detail=code_error)
+    
+    email_valid, email_error = validate_email(payload.email)
+    if not email_valid:
+        raise HTTPException(status_code=400, detail=email_error)
+    
+    # Normalize email to lowercase
+    normalized_email = payload.email.strip().lower()
+    
     event = session.exec(select(Event).where(Event.join_code == join_code)).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     existing = session.exec(
         select(Participant).where(
             Participant.event_id == event.id,
-            Participant.email == payload.email,
+            Participant.email == normalized_email,
         )
     ).first()
     if existing:
@@ -67,7 +102,7 @@ def join_event(
             detail="Participant with this email already joined the event",
         )
 
-    participant = Participant(event_id=event.id, email=payload.email)
+    participant = Participant(event_id=event.id, email=normalized_email)
     session.add(participant)
     session.commit()
     session.refresh(participant)
@@ -276,9 +311,12 @@ def my_match(join_code: str, email: str, session: Session = Depends(get_session)
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
+    # Normalize email
+    normalized_email = email.strip().lower()
+    
     participant = session.exec(
         select(Participant).where(
-            Participant.event_id == event.id, Participant.email == email
+            Participant.event_id == event.id, Participant.email == normalized_email
         )
     ).first()
     if not participant:
@@ -513,3 +551,157 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
         "ends_at": ends_at,
         "pairings_count": len(pairs),
     }
+
+
+@app.get("/events/{join_code}/facilitator", response_class=HTMLResponse)
+def facilitator_dashboard(join_code: str, session: Session = Depends(get_session)):
+    """
+    Facilitator dashboard for managing rounds and viewing pairings.
+    Returns the facilitator.html template.
+    """
+    event = session.exec(select(Event).where(Event.join_code == join_code)).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    template = jinja_env.get_template("facilitator.html")
+    return template.render(title=event.title, join_code=join_code)
+
+
+@app.get("/events/{join_code}/dashboard")
+def dashboard(join_code: str, session: Session = Depends(get_session)):
+    """
+    Returns JSON with event state, participants, and pairings for real-time updates.
+    """
+    event = session.exec(select(Event).where(Event.join_code == join_code)).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    participants = session.exec(
+        select(Participant).where(Participant.event_id == event.id)
+    ).all()
+
+    current_round = int(event.current_round or 0)
+    pairings = []
+    
+    if current_round > 0:
+        pairings_data = session.exec(
+            select(Pairing).where(
+                Pairing.event_id == event.id,
+                Pairing.round_number == current_round,
+            )
+        ).all()
+        
+        for pairing in pairings_data:
+            p1 = session.exec(select(Participant).where(Participant.id == pairing.p1_id)).first()
+            p2 = session.exec(select(Participant).where(Participant.id == pairing.p2_id)).first() if pairing.p2_id else None
+            
+            pairings.append({
+                "id": pairing.id,
+                "p1": {"id": p1.id, "email": p1.email} if p1 else None,
+                "p2": {"id": p2.id, "email": p2.email} if p2 else None,
+                "status": pairing.status,
+            })
+
+    # Calculate seconds left
+    now = datetime.now(MINSK_TZ)
+    phase_ends_at = getattr(event, "phase_ends_at", None)
+    seconds_left = 0
+    if phase_ends_at:
+        if phase_ends_at.tzinfo is None:
+            phase_ends_at = phase_ends_at.replace(tzinfo=MINSK_TZ)
+        seconds_left = max(0, int((phase_ends_at - now).total_seconds()))
+
+    return {
+        "event": {
+            "id": event.id,
+            "title": event.title,
+            "join_code": event.join_code,
+            "status": event.status,
+            "current_round": current_round,
+            "phase": getattr(event, "phase", "lobby"),
+            "seconds_left": seconds_left,
+        },
+        "participants": [
+            {"id": p.id, "email": p.email}
+            for p in participants
+        ],
+        "pairings": pairings,
+    }
+
+
+@app.get("/events/{join_code}/participant_view", response_class=HTMLResponse)
+def participant_view(join_code: str, email: str, session: Session = Depends(get_session)):
+    """
+    Participant view showing current partner and round status.
+    Returns the participant.html template.
+    """
+    event = session.exec(select(Event).where(Event.join_code == join_code)).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    # Normalize email
+    normalized_email = email.strip().lower()
+    
+    participant = session.exec(
+        select(Participant).where(
+            Participant.event_id == event.id, Participant.email == normalized_email
+        )
+    ).first()
+    if not participant:
+        raise HTTPException(status_code=404, detail="Participant not found")
+
+    # Sanitize email for safe use in HTML
+    safe_email = normalized_email.replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+
+    template = jinja_env.get_template("participant.html")
+    return template.render(join_code=join_code, safe_email=safe_email)
+
+
+class MarkMetRequest(BaseModel):
+    email: str
+
+
+@app.post("/events/{join_code}/mark_met")
+def mark_met(
+    join_code: str, payload: MarkMetRequest, session: Session = Depends(get_session)
+):
+    """
+    Allows a participant to mark that they have met their current partner.
+    Updates the pairing status from 'assigned' to 'met'.
+    """
+    event = session.exec(select(Event).where(Event.join_code == join_code)).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    # Normalize email
+    normalized_email = payload.email.strip().lower()
+    
+    participant = session.exec(
+        select(Participant).where(
+            Participant.event_id == event.id, Participant.email == normalized_email
+        )
+    ).first()
+    if not participant:
+        raise HTTPException(status_code=404, detail="Participant not found")
+
+    current_round = int(event.current_round or 0)
+    if current_round <= 0:
+        raise HTTPException(status_code=400, detail="No active round")
+
+    pairing = session.exec(
+        select(Pairing).where(
+            Pairing.event_id == event.id,
+            Pairing.round_number == current_round,
+            (Pairing.p1_id == participant.id) | (Pairing.p2_id == participant.id),
+        )
+    ).first()
+    if not pairing:
+        raise HTTPException(status_code=404, detail="No pairing found for this round")
+
+    pairing.status = "met"
+    pairing.met_at = datetime.now(MINSK_TZ)
+    session.add(pairing)
+    session.commit()
+    session.refresh(pairing)
+
+    return {"status": "success", "pairing_id": pairing.id, "met_at": pairing.met_at}

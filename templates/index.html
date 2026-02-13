@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed Friending - Create & Manage Events</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+
+        header h1 {
+            font-size: 42px;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        header p {
+            font-size: 18px;
+            opacity: 0.95;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2::before {
+            font-size: 28px;
+        }
+
+        .create-card h2::before {
+            content: "✨";
+        }
+
+        .recent-card h2::before {
+            content: "📋";
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="email"] {
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #e8e8e8;
+            border-color: #d0d0d0;
+        }
+
+        .events-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .event-item {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .event-item:hover {
+            border-color: #667eea;
+            background: #f9f9ff;
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .event-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .event-code {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .event-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .event-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 13px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-facilitator {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-facilitator:hover {
+            background: #5568d3;
+        }
+
+        .btn-copy {
+            background: #f0f0f0;
+            color: #333;
+            border: 1px solid #d0d0d0;
+        }
+
+        .btn-copy:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-copy.copied {
+            background: #4caf50;
+            color: white;
+            border-color: #4caf50;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state p {
+            margin-bottom: 20px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+
+        .alert-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border-left: 4px solid #2e7d32;
+        }
+
+        .participant-link-box {
+            background: #f5f5f5;
+            border: 1px dashed #d0d0d0;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .participant-link-box.show {
+            display: block;
+        }
+
+        .participant-link-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .participant-link {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-all;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+            color: #333;
+        }
+
+        .divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤝 Speed Friending</h1>
+            <p>Create events and manage meaningful connections</p>
+            <a href="/join" style="display: inline-block; margin-top: 15px; padding: 10px 20px; background: white; color: #667eea; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; transition: all 0.3s ease;" onmouseover="this.style.boxShadow='0 5px 15px rgba(0,0,0,0.2)'" onmouseout="this.style.boxShadow='none'">
+                👥 Join an Event
+            </a>
+        </header>
+
+        <div class="main-grid">
+            <!-- Create Event Card -->
+            <div class="card create-card">
+                <h2>Create New Event</h2>
+                
+                <div id="createAlert" class="alert"></div>
+
+                <form id="createEventForm">
+                    <div class="form-group">
+                        <label for="eventTitle">Event Title</label>
+                        <input 
+                            type="text" 
+                            id="eventTitle" 
+                            name="title" 
+                            placeholder="e.g., Tech Community Meetup"
+                            required
+                        >
+                    </div>
+                    <button type="submit" class="btn-primary" id="createBtn">
+                        Create Event
+                    </button>
+                </form>
+
+                <div class="divider"></div>
+                <p style="font-size: 13px; color: #999; margin-bottom: 16px;">
+                    ℹ️ Create a new speed friending event. You'll receive a unique join code that participants can use to join.
+                </p>
+            </div>
+
+            <!-- Recent Events Card -->
+            <div class="card recent-card">
+                <h2>Your Events</h2>
+                
+                <div id="eventsList" class="events-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>No events created yet</p>
+                        <p style="font-size: 12px;">Create your first event to get started</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        let events = [];
+
+        // Load events from localStorage
+        function loadEventsFromStorage() {
+            const stored = localStorage.getItem('speedfriending_events');
+            return stored ? JSON.parse(stored) : [];
+        }
+
+        // Save events to localStorage
+        function saveEventsToStorage(eventsList) {
+            localStorage.setItem('speedfriending_events', JSON.stringify(eventsList));
+        }
+
+        // Show alert
+        function showAlert(message, type = 'error') {
+            const alertEl = document.getElementById('createAlert');
+            alertEl.textContent = message;
+            alertEl.className = `alert show alert-${type}`;
+            setTimeout(() => {
+                alertEl.classList.remove('show');
+            }, 5000);
+        }
+
+        // Create event
+        document.getElementById('createEventForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const titleInput = document.getElementById('eventTitle');
+            const title = titleInput.value.trim();
+            
+            if (!title) {
+                titleInput.classList.add('error');
+                showAlert('Please enter an event title', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('createBtn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loading"></div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/events`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title })
+                });
+
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to create event');
+                }
+
+                const event = data;
+                
+                // Add to storage
+                events = loadEventsFromStorage();
+                events.unshift(event);
+                saveEventsToStorage(events);
+
+                // Reset form
+                titleInput.value = '';
+                titleInput.classList.remove('error');
+                
+                showAlert(`Event "${title}" created successfully!`, 'success');
+                renderEvents();
+            } catch (error) {
+                showAlert(error.message || 'Failed to create event', 'error');
+                titleInput.classList.add('error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        });
+
+        // Clear error on input
+        document.getElementById('eventTitle').addEventListener('input', function() {
+            this.classList.remove('error');
+        });
+
+        // Render events
+        function renderEvents() {
+            events = loadEventsFromStorage();
+            const container = document.getElementById('eventsList');
+
+            if (events.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>No events created yet</p>
+                        <p style="font-size: 12px;">Create your first event to get started</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = events.map(event => {
+                const joinLink = `${API_BASE}/?join=${event.join_code}`;
+                const participantLink = `${API_BASE}/join?code=${event.join_code}`;
+                
+                return `
+                    <div class="event-item">
+                        <div class="event-header">
+                            <div class="event-title">${escapeHtml(event.title)}</div>
+                            <div class="event-code">${event.join_code}</div>
+                        </div>
+                        <div class="event-meta">
+                            <span>📅 Created: ${new Date(event.created_at).toLocaleDateString()}</span>
+                            <span>Status: <strong>${event.status}</strong></span>
+                        </div>
+                        <div class="event-actions">
+                            <button class="btn-small btn-facilitator" onclick="goToFacilitator('${event.join_code}')">
+                                📊 Facilitator Dashboard
+                            </button>
+                            <button class="btn-small btn-copy" onclick="copyToClipboard('${participantLink}', this)">
+                                📋 Copy Participant Link
+                            </button>
+                        </div>
+                        <div class="participant-link-box" id="link-${event.join_code}">
+                            <div class="participant-link-label">Share this link with participants:</div>
+                            <div class="participant-link">${participantLink}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function goToFacilitator(joinCode) {
+            window.location.href = `/events/${joinCode}/facilitator`;
+        }
+
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(() => {
+                showAlert('Failed to copy to clipboard', 'error');
+            });
+        }
+
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Load and render events on page load
+        renderEvents();
+    </script>
+</body>
+</html>
