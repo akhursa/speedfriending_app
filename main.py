@@ -35,6 +35,11 @@ def generate_join_code(n: int = 6) -> str:
     return "".join(secrets.choice(alphabet) for _ in range(n))
 
 
+def generate_facilitator_pin(n: int = 4) -> str:
+    """Generate a 4-digit numeric PIN for facilitator authentication"""
+    return "".join(secrets.choice(string.digits) for _ in range(n))
+
+
 @app.post("/events")
 def create_event(payload: EventCreate, session: Session = Depends(get_session)):
     # Validate event title
@@ -46,11 +51,25 @@ def create_event(payload: EventCreate, session: Session = Depends(get_session)):
     while session.exec(select(Event).where(Event.join_code == join_code)).first():
         join_code = generate_join_code()
 
-    event = Event(title=payload.title.strip(), join_code=join_code)
+    facilitator_pin = generate_facilitator_pin()
+    
+    event = Event(
+        title=payload.title.strip(),
+        join_code=join_code,
+        facilitator_pin=facilitator_pin
+    )
     session.add(event)
     session.commit()
     session.refresh(event)
-    return event
+    
+    return {
+        "id": event.id,
+        "title": event.title,
+        "join_code": event.join_code,
+        "facilitator_pin": event.facilitator_pin,
+        "created_at": event.created_at,
+        "status": event.status,
+    }
 
 
 @app.get("/join", response_class=HTMLResponse)
@@ -61,6 +80,30 @@ def join_page(code: str = None):
     """
     template = jinja_env.get_template("join.html")
     return template.render()
+
+
+@app.get("/facilitator/login", response_class=HTMLResponse)
+def facilitator_login():
+    """
+    Facilitator login page for authentication.
+    """
+    template = jinja_env.get_template("facilitator_login.html")
+    return template.render()
+
+
+@app.post("/events/{join_code}/verify_facilitator")
+def verify_facilitator(join_code: str, pin: str, session: Session = Depends(get_session)):
+    """
+    Verify facilitator PIN for event access.
+    """
+    event = session.exec(select(Event).where(Event.join_code == join_code)).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    if event.facilitator_pin != pin:
+        raise HTTPException(status_code=401, detail="Invalid facilitator PIN")
+    
+    return {"status": "authenticated", "join_code": join_code}
 
 
 @app.on_event("startup")

@@ -32,6 +32,25 @@
             color: white;
             padding: 30px;
             text-align: center;
+            position: relative;
+        }
+        
+        .logout-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
         
         .header h1 {
@@ -259,6 +278,7 @@
 <body>
     <div class="container">
         <div class="header">
+            <button class="logout-btn" onclick="logout()">🚪 Logout</button>
             <h1>⚡ {{ title }}</h1>
             <div id="status-message" style="font-size: 14px; opacity: 0.9;">Loading...</div>
             <div class="header-info">
@@ -304,6 +324,19 @@
     <script>
         const JOIN_CODE = '{{ join_code }}';
         const API_BASE = '/events/' + JOIN_CODE;
+        
+        // Check if facilitator is authenticated
+        function checkFacilitatorAuth() {
+            const storedPin = sessionStorage.getItem(`facil_${JOIN_CODE}`);
+            if (!storedPin) {
+                // Not authenticated, redirect to login
+                window.location.href = '/facilitator/login';
+            }
+        }
+        
+        // Run auth check on page load
+        checkFacilitatorAuth();
+        
         let currentData = null;
         let timerInterval = null;
         
@@ -488,6 +521,12 @@
         // Initial load and auto-refresh
         loadDashboard();
         setInterval(loadDashboard, 3000); // Refresh every 3 seconds
+        
+        function logout() {
+            sessionStorage.removeItem(`facil_${JOIN_CODE}`);
+            sessionStorage.removeItem('facil_join_code');
+            window.location.href = '/';
+        }
     </script>
 </body>
 </html>

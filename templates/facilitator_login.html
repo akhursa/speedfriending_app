@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facilitator Login - Speed Friending</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 450px;
+            width: 100%;
+            padding: 40px;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 20px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="text"]::placeholder,
+        input[type="password"]::placeholder {
+            color: #bbb;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input.error {
+            border-color: #c62828;
+            background-color: #ffebee;
+        }
+
+        button {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-top: 10px;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .alert {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #c62828;
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            color: #1565c0;
+            border-left: 4px solid #1565c0;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .back-link a:hover {
+            color: #764ba2;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .btn-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .info-box {
+            background: #f5f5f5;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🔐</div>
+            <h1>Facilitator Login</h1>
+            <p>Enter your event details to access the facilitator dashboard</p>
+        </div>
+
+        <div id="alertBox" class="alert"></div>
+
+        <div class="info-box">
+            <strong>🔑 Tip:</strong> Your facilitator PIN was provided when you created the event. Check your browser's local storage on the home page.
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="joinCode">Event Code</label>
+                <input 
+                    type="text" 
+                    id="joinCode" 
+                    name="join_code" 
+                    placeholder="e.g., ABC123"
+                    maxlength="10"
+                    required
+                    autocomplete="off"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="facilPIN">Facilitator PIN</label>
+                <input 
+                    type="password" 
+                    id="facilPIN" 
+                    name="facil_pin" 
+                    placeholder="••••"
+                    required
+                    autocomplete="off"
+                >
+            </div>
+
+            <button type="submit" class="btn-primary" id="loginBtn">
+                <div class="btn-content">
+                    <span id="btnText">Access Dashboard</span>
+                </div>
+            </button>
+        </form>
+
+        <div class="back-link">
+            <a href="/">← Create a New Event</a>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        function showAlert(message, type = 'error') {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.textContent = message;
+            alertBox.className = `alert show alert-${type}`;
+        }
+
+        function clearAlert() {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.classList.remove('show');
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            clearAlert();
+
+            const joinCode = document.getElementById('joinCode').value.trim().toUpperCase();
+            const facilPIN = document.getElementById('facilPIN').value;
+
+            if (!joinCode) {
+                showAlert('Please enter the event code', 'error');
+                return;
+            }
+
+            if (!facilPIN) {
+                showAlert('Please enter the facilitator PIN', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('btnText');
+            const originalText = btnText.textContent;
+            
+            btn.disabled = true;
+            btnText.innerHTML = '<div class="loading"></div>Verifying...';
+
+            try {
+                // Try to access the event to verify it exists
+                const checkResponse = await fetch(`${API_BASE}/events/${joinCode}/state`);
+                
+                if (!checkResponse.ok) {
+                    if (checkResponse.status === 404) {
+                        throw new Error('Event not found. Please check the event code.');
+                    }
+                    throw new Error('Failed to verify event');
+                }
+
+                // Store facilitator session
+                sessionStorage.setItem(`facil_${joinCode}`, facilPIN);
+                sessionStorage.setItem('facil_join_code', joinCode);
+
+                // Redirect to facilitator dashboard
+                setTimeout(() => {
+                    window.location.href = `/events/${joinCode}/facilitator`;
+                }, 500);
+
+            } catch (error) {
+                showAlert(error.message || 'Failed to login. Please try again.', 'error');
+                btn.disabled = false;
+                btnText.textContent = originalText;
+            }
+        });
+
+        // Clear error styling on input
+        document.getElementById('joinCode').addEventListener('input', function() {
+            this.classList.remove('error');
+        });
+
+        document.getElementById('facilPIN').addEventListener('input', function() {
+            this.classList.remove('error');
+        });
+    </script>
+</body>
+</html>
