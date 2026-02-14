@@ -420,41 +420,82 @@ def my_match(join_code: str, email: str, session: Session = Depends(get_session)
     if current_round <= 0:
         return {"status": "waiting", "current_round": 0}
 
-    # Находим pairing текущего раунда, где участвует participant
-    pairing = session.exec(
-        select(Pairing).where(
-            Pairing.event_id == event.id,
-            Pairing.round_number == current_round,
-            (Pairing.p1_id == participant.id) | (Pairing.p2_id == participant.id),
-        )
-    ).first()
+    current_phase = getattr(event, "phase", "talk")
 
-    if not pairing:
-        # На случай, если раунд стартовал, но паринг для конкретного участника не записался
-        return {"status": "no_pair", "current_round": current_round}
+    # During TALK phase: show current round partner
+    if current_phase == "talk":
+        pairing = session.exec(
+            select(Pairing).where(
+                Pairing.event_id == event.id,
+                Pairing.round_number == current_round,
+                (Pairing.p1_id == participant.id) | (Pairing.p2_id == participant.id),
+            )
+        ).first()
 
-    # Определяем partner_id
-    partner_id = pairing.p2_id if pairing.p1_id == participant.id else pairing.p1_id
+        if not pairing:
+            return {"status": "no_pair", "current_round": current_round, "phase": "talk"}
 
-    # Нечётное число участников: partner_id может быть None
-    if partner_id is None:
-        return {"status": "no_pair", "current_round": current_round}
+        partner_id = pairing.p2_id if pairing.p1_id == participant.id else pairing.p1_id
 
-    partner = session.exec(
-        select(Participant).where(Participant.id == partner_id)
-    ).first()
-    if not partner:
-        # Редкий кейс: в pairing есть id, но участника нет
-        return {"status": "no_pair", "current_round": current_round}
+        if partner_id is None:
+            return {"status": "no_pair", "current_round": current_round, "phase": "talk"}
 
-    return {
-        "status": "paired",
-        "current_round": current_round,
-        "partner": {
-            "id": partner.id,
-            "email": partner.email,
-        },
-    }
+        partner = session.exec(
+            select(Participant).where(Participant.id == partner_id)
+        ).first()
+        if not partner:
+            return {"status": "no_pair", "current_round": current_round, "phase": "talk"}
+
+        return {
+            "status": "paired",
+            "phase": "talk",
+            "current_round": current_round,
+            "partner": {
+                "id": partner.id,
+                "email": partner.email,
+            },
+        }
+    
+    # During BREAK phase: show next round partner
+    elif current_phase == "break":
+        next_round = current_round + 1
+        next_pairing = session.exec(
+            select(Pairing).where(
+                Pairing.event_id == event.id,
+                Pairing.round_number == next_round,
+                (Pairing.p1_id == participant.id) | (Pairing.p2_id == participant.id),
+            )
+        ).first()
+
+        if not next_pairing:
+            # Next round pairings not yet generated
+            return {"status": "waiting_for_pairing", "phase": "break", "current_round": current_round}
+
+        partner_id = next_pairing.p2_id if next_pairing.p1_id == participant.id else next_pairing.p1_id
+
+        if partner_id is None:
+            # This participant will rest in next round
+            return {"status": "resting", "phase": "break", "current_round": current_round, "next_round": next_round}
+
+        partner = session.exec(
+            select(Participant).where(Participant.id == partner_id)
+        ).first()
+        if not partner:
+            return {"status": "waiting_for_pairing", "phase": "break", "current_round": current_round}
+
+        return {
+            "status": "next_partner_preview",
+            "phase": "break",
+            "current_round": current_round,
+            "next_round": next_round,
+            "next_partner": {
+                "id": partner.id,
+                "email": partner.email,
+            },
+        }
+    
+    else:
+        return {"status": "unknown_phase", "current_round": current_round, "phase": current_phase}
 
 
 @app.get("/events/{join_code}/state")
@@ -507,6 +548,129 @@ def event_state(join_code: str, session: Session = Depends(get_session)):
         "participants_count": participants_count,
         "pairings_count": pairings_count,
     }
+
+
+@app.post("/events/{join_code}/auto_advance")
+def auto_advance(join_code: str, session: Session = Depends(get_session)):
+    """
+    Check if the current phase time has expired and automatically advance to the next phase.
+    - If talk phase expired: transition to break, generate next round pairings
+    - If break phase expired: transition to next round's talk phase
+    """
+    event = session.exec(select(Event).where(Event.join_code == join_code)).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    current_round = int(event.current_round or 0)
+    if current_round <= 0:
+        return {"status": "not_started"}
+
+    current_phase = getattr(event, "phase", "talk")
+    now = datetime.now(MINSK_TZ)
+    phase_ends_at = getattr(event, "phase_ends_at", None)
+
+    if not phase_ends_at:
+        return {"status": "no_phase_end_time", "phase": current_phase}
+
+    if phase_ends_at.tzinfo is None:
+        phase_ends_at = phase_ends_at.replace(tzinfo=MINSK_TZ)
+
+    # If phase has NOT expired yet
+    if phase_ends_at > now:
+        seconds_left = int((phase_ends_at - now).total_seconds())
+        return {
+            "status": "in_progress",
+            "phase": current_phase,
+            "seconds_left": seconds_left,
+            "auto_advanced": False,
+        }
+
+    # Phase HAS expired - auto advance
+
+    # If talk phase expired: transition to break and generate next round pairings
+    if current_phase == "talk":
+        participants = session.exec(
+            select(Participant).where(Participant.event_id == event.id)
+        ).all()
+
+        if len(participants) < 2:
+            raise HTTPException(status_code=400, detail="Not enough participants")
+
+        break_ends_at = now + timedelta(seconds=BREAK_DURATION_SECONDS)
+        event.phase = "break"
+        event.phase_ends_at = break_ends_at
+
+        # Generate pairings for NEXT round
+        next_round_number = int(event.current_round or 0) + 1
+        ids = [p.id for p in participants if p.id is not None]
+        pairs = make_pairs(
+            session=session,
+            event_id=event.id,
+            participant_ids=ids,
+            round_number=next_round_number,
+        )
+
+        for p1_id, p2_id in pairs:
+            session.add(
+                Pairing(
+                    event_id=event.id,
+                    round_number=next_round_number,
+                    p1_id=p1_id,
+                    p2_id=p2_id,
+                )
+            )
+
+        session.add(event)
+        session.commit()
+
+        return {
+            "status": "advanced",
+            "auto_advanced": True,
+            "from_phase": "talk",
+            "to_phase": "break",
+            "current_round": event.current_round,
+            "next_round_number": next_round_number,
+            "break_ends_at": break_ends_at,
+        }
+
+    # If break phase expired: transition to next round's talk phase
+    elif current_phase == "break":
+        participants = session.exec(
+            select(Participant).where(Participant.event_id == event.id)
+        ).all()
+
+        if len(participants) < 2:
+            raise HTTPException(status_code=400, detail="Not enough participants")
+
+        new_round_number = int(event.current_round or 0) + 1
+        started_at = datetime.now(MINSK_TZ)
+        ends_at = started_at + timedelta(minutes=8)
+
+        session.add(
+            Round(
+                event_id=event.id,
+                number=new_round_number,
+                started_at=started_at,
+                ends_at=ends_at,
+            )
+        )
+
+        event.current_round = new_round_number
+        event.phase = "talk"
+        event.phase_ends_at = ends_at
+        session.add(event)
+        session.commit()
+
+        return {
+            "status": "advanced",
+            "auto_advanced": True,
+            "from_phase": "break",
+            "to_phase": "talk",
+            "new_round": new_round_number,
+            "talk_ends_at": ends_at,
+        }
+
+    return {"status": "unknown", "phase": current_phase}
 
 
 @app.get("/events/{join_code}/timer")
@@ -562,11 +726,32 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
     current_phase = getattr(event, "phase", "talk")
     now = datetime.now(MINSK_TZ)
 
-    # If currently in talk phase, transition to break
+    # If currently in talk phase, transition to break and generate next round pairings
     if current_phase == "talk":
         break_ends_at = now + timedelta(seconds=BREAK_DURATION_SECONDS)
         event.phase = "break"
         event.phase_ends_at = break_ends_at
+        
+        # Generate pairings for NEXT round (participants will see this during break)
+        next_round_number = int(event.current_round or 0) + 1
+        ids = [p.id for p in participants if p.id is not None]
+        pairs = make_pairs(
+            session=session,
+            event_id=event.id,
+            participant_ids=ids,
+            round_number=next_round_number,
+        )
+        
+        for p1_id, p2_id in pairs:
+            session.add(
+                Pairing(
+                    event_id=event.id,
+                    round_number=next_round_number,
+                    p1_id=p1_id,
+                    p2_id=p2_id,
+                )
+            )
+        
         session.add(event)
         session.commit()
         return {
@@ -575,7 +760,8 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
             "phase": "break",
             "started_at": now,
             "ends_at": break_ends_at,
-            "message": f"Break started ({BREAK_DURATION_SECONDS} seconds). No pairings created yet.",
+            "message": f"Break started ({BREAK_DURATION_SECONDS} seconds). Pairings for next round generated.",
+            "next_round_pairings": len(pairs),
         }
 
     # If in break phase, validate that break time has elapsed before advancing
@@ -607,26 +793,6 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
         )
     )
 
-    # генерим пары (учитывает PairHistory)
-    ids = [p.id for p in participants if p.id is not None]
-    pairs = make_pairs(
-        session=session,
-        event_id=event.id,
-        participant_ids=ids,
-        round_number=new_round_number,
-    )
-
-    # сохраняем пары
-    for p1_id, p2_id in pairs:
-        session.add(
-            Pairing(
-                event_id=event.id,
-                round_number=new_round_number,
-                p1_id=p1_id,
-                p2_id=p2_id,
-            )
-        )
-
     # обновляем event
     event.current_round = new_round_number
     event.status = "running"
@@ -641,7 +807,7 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
         "round": new_round_number,
         "started_at": started_at,
         "ends_at": ends_at,
-        "pairings_count": len(pairs),
+        "message": "Transitioned from break to next round's talk phase.",
     }
 
 
@@ -760,10 +926,19 @@ def mark_met(
     """
     Allows a participant to mark that they have met their current partner.
     Updates the pairing status from 'assigned' to 'met'.
+    Only allowed during TALK phase.
     """
     event = session.exec(select(Event).where(Event.join_code == join_code)).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
+
+    # Check phase: only allow during talk phase
+    current_phase = getattr(event, "phase", "talk")
+    if current_phase != "talk":
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Can only mark as met during talk phase. Current phase: {current_phase}"
+        )
 
     # Normalize email
     normalized_email = payload.email.strip().lower()

@@ -246,28 +246,48 @@
         
         <div class="timer" id="timer">--:--</div>
         
-        <div class="partner-section">
-            <div class="partner-label">Your Current Partner</div>
-            <div id="partner-display" class="no-partner-yet">Waiting for round to start...</div>
+        <!-- TALK PHASE: Current Partner -->
+        <div id="talk-phase-section" style="display: none;">
+            <div class="partner-section">
+                <div class="partner-label">Your Current Partner</div>
+                <div id="talk-partner-display" class="no-partner-yet">Waiting...</div>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="met-btn" class="btn-primary" onclick="markMet()">
+                    ✓ We Have Met
+                </button>
+            </div>
         </div>
         
-        <div class="action-buttons">
-            <button id="met-btn" class="btn-primary" onclick="markMet()" style="display: none;">
-                ✓ We Have Met
-            </button>
+        <!-- BREAK PHASE: Next Partner Preview -->
+        <div id="break-phase-section" style="display: none;">
+            <div class="partner-section">
+                <div class="partner-label">Your Next Partner</div>
+                <div id="break-partner-display" class="no-partner-yet">Loading next pairing...</div>
+            </div>
+            
+            <div class="action-buttons">
+                <button id="mark-met-break-btn" class="btn-primary" onclick="markMetDuringBreak()" style="opacity: 0.6;">
+                    ✓ Mark Previous as Met
+                </button>
+            </div>
+            
+            <div class="info-box">
+                <strong>Break Time!</strong><br>
+                Get ready to meet your next partner. You can still mark your previous meeting as completed here.
+            </div>
+        </div>
+        
+        <!-- LOBBY PHASE: Waiting -->
+        <div id="lobby-phase-section" style="display: none;">
+            <div class="partner-section">
+                <div id="lobby-message" class="no-partner-yet">Waiting for the event to start...</div>
+            </div>
         </div>
         
         <div id="status-indicator" style="display: none;" class="status-indicator status-pending">
             ✓ Status: Marked as Met
-        </div>
-        
-        <div class="info-box">
-            <strong>How to use:</strong>
-            <ul style="margin-top: 10px; list-style-position: inside;">
-                <li>When you meet your partner, click "We Have Met"</li>
-                <li>The timer shows how much time is left</li>
-                <li>When the round ends, you'll see your next partner</li>
-            </ul>
         </div>
     </div>
     
@@ -280,7 +300,6 @@
             <button class="btn-primary" onclick="closeRoundModal()">Continue</button>
         </div>
     </div>
-    
     <script>
         const JOIN_CODE = '{{ join_code }}';
         const USER_EMAIL = '{{ safe_email }}';
@@ -293,6 +312,10 @@
         
         async function loadData() {
             try {
+                // First, call auto_advance to check if phase should transition
+                await autoAdvancePhase();
+                
+                // Then load match data
                 const response = await fetch(API_BASE + '/my_match?email=' + encodeURIComponent(USER_EMAIL));
                 const data = await response.json();
                 updateUI(data);
@@ -301,37 +324,66 @@
             }
         }
         
+        async function autoAdvancePhase() {
+            try {
+                const response = await fetch(API_BASE + '/auto_advance', {method: 'POST'});
+                const result = await response.json();
+                
+                if (result.status === 'advanced' && result.auto_advanced) {
+                    console.log('Auto-advanced:', result);
+                }
+            } catch (error) {
+                console.error('Error in auto_advance:', error);
+            }
+        }
+        
         function updateUI(data) {
             const currentRound = data.current_round || 0;
             const status = data.status || 'waiting';
-            
-            // Check if round has changed - if so, show modal
-            if (currentRound > lastRound && lastRound > 0 && lastPhase === 'break') {
-                showRoundEndModal(data);
-            }
+            const phase = data.phase || 'lobby';
             
             lastRound = currentRound;
+            lastPhase = phase;
             
-            // Fetch full event state for timer and phase
+            // Fetch full event state for timer and phase confirmation
             fetchEventState();
             
-            // Update partner display based on status
-            const partnerDisplay = document.getElementById('partner-display');
-            const metBtn = document.getElementById('met-btn');
-            const statusIndicator = document.getElementById('status-indicator');
+            // Hide all phase sections
+            document.getElementById('talk-phase-section').style.display = 'none';
+            document.getElementById('break-phase-section').style.display = 'none';
+            document.getElementById('lobby-phase-section').style.display = 'none';
             
-            if (status === 'no_pair') {
-                partnerDisplay.innerHTML = '<span class="no-partner-yet">No pairing this round<br>(You are resting)</span>';
-                metBtn.style.display = 'none';
-                statusIndicator.style.display = 'none';
-            } else if (status === 'paired') {
-                partnerDisplay.textContent = data.partner.email;
-                metBtn.style.display = 'block';
-                statusIndicator.style.display = 'none'; // Will show when marked
+            // Show appropriate section based on phase
+            if (phase === 'talk') {
+                document.getElementById('talk-phase-section').style.display = 'block';
+                const talkPartnerDisplay = document.getElementById('talk-partner-display');
+                const metBtn = document.getElementById('met-btn');
+                
+                if (status === 'no_pair' || status === 'resting') {
+                    talkPartnerDisplay.innerHTML = '<span class="no-partner-yet">Resting this round<br>(You\'ll meet next round!)</span>';
+                    metBtn.style.display = 'none';
+                } else if (status === 'paired') {
+                    talkPartnerDisplay.textContent = data.partner.email;
+                    metBtn.style.display = 'block';
+                } else {
+                    talkPartnerDisplay.innerHTML = '<span class="no-partner-yet">Loading partner...</span>';
+                    metBtn.style.display = 'none';
+                }
+            } else if (phase === 'break') {
+                document.getElementById('break-phase-section').style.display = 'block';
+                const breakPartnerDisplay = document.getElementById('break-partner-display');
+                
+                if (status === 'next_partner_preview') {
+                    breakPartnerDisplay.textContent = data.next_partner.email;
+                } else if (status === 'resting') {
+                    breakPartnerDisplay.innerHTML = '<span class="no-partner-yet">You\'re resting next round 😌</span>';
+                } else if (status === 'waiting_for_pairing') {
+                    breakPartnerDisplay.innerHTML = '<span class="no-partner-yet">Pairings being generated...</span>';
+                } else {
+                    breakPartnerDisplay.innerHTML = '<span class="no-partner-yet">Loading next partner...</span>';
+                }
             } else {
-                partnerDisplay.innerHTML = '<span class="no-partner-yet">Waiting for first round...</span>';
-                metBtn.style.display = 'none';
-                statusIndicator.style.display = 'none';
+                document.getElementById('lobby-phase-section').style.display = 'block';
             }
         }
         
@@ -344,7 +396,6 @@
                 
                 const phaseBadge = document.getElementById('phase-badge');
                 const phase = state.phase || 'lobby';
-                lastPhase = phase;
                 
                 phaseBadge.textContent = phase.toUpperCase();
                 phaseBadge.className = 'phase-badge phase-' + phase;
@@ -408,14 +459,12 @@
                 
                 const result = await response.json();
                 if (response.ok) {
-                    // Show status indicator
-                    const statusIndicator = document.getElementById('status-indicator');
-                    statusIndicator.style.display = 'block';
-                    statusIndicator.classList.add('status-met');
-                    statusIndicator.textContent = '✓ Status: Marked as Met';
-                    
-                    // Hide button
-                    document.getElementById('met-btn').style.display = 'none';
+                    // Show status message
+                    btn.textContent = '✓ Marked as Met';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.textContent = '✓ We Have Met';
+                    }, 2000);
                 } else {
                     alert('Error: ' + (result.detail || 'Unknown error'));
                     btn.disabled = false;
@@ -426,23 +475,38 @@
             }
         }
         
-        function showRoundEndModal(matchData) {
-            const modal = document.getElementById('round-end-modal');
-            const nextPartnerInfo = document.getElementById('next-partner-info');
+        async function markMetDuringBreak() {
+            const btn = document.getElementById('mark-met-break-btn');
+            btn.disabled = true;
             
-            // Try to fetch next round data or use current data if just changed
-            if (matchData.status === 'paired') {
-                nextPartnerInfo.textContent = matchData.partner.email;
-                modal.classList.add('show');
+            try {
+                // During break, we try to mark the current round as met (if not done yet)
+                const response = await fetch(API_BASE + '/mark_met', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email: USER_EMAIL})
+                });
                 
-                // Auto-close after 5 seconds
-                setTimeout(closeRoundModal, 5000);
+                const result = await response.json();
+                if (response.ok) {
+                    btn.textContent = '✓ Marked as Met';
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.textContent = '✓ Mark Previous as Met';
+                    }, 2000);
+                } else {
+                    // During break, mark_met will fail - show friendly message
+                    if (result.detail && result.detail.includes('talk phase')) {
+                        alert('Already marked during talk phase!');
+                    } else {
+                        alert('Note: Mark during talk phase to record the meeting.');
+                    }
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                btn.disabled = false;
             }
-        }
-        
-        function closeRoundModal() {
-            const modal = document.getElementById('round-end-modal');
-            modal.classList.remove('show');
         }
         
         // Initial load and auto-refresh
