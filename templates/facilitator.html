@@ -273,6 +273,53 @@
             color: #999;
             font-style: italic;
         }
+        
+        .questions-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .questions-section h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .questions-textarea {
+            width: 100%;
+            height: 150px;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            resize: vertical;
+        }
+        
+        .upload-questions-btn {
+            margin-top: 10px;
+            width: 100%;
+        }
+        
+        .upload-status {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .questions-list {
+            list-style: decimal;
+            padding-left: 20px;
+            line-height: 1.8;
+        }
+        
+        .questions-list li {
+            margin-bottom: 8px;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -303,6 +350,19 @@
         
         <div class="content">
             <div>
+                <div class="questions-section">
+                    <h3>📋 Event Questions</h3>
+                    <p style="font-size: 12px; color: #999; margin-bottom: 10px;">One question per line (max 50 questions)</p>
+                    <textarea id="questions-input" 
+                              class="questions-textarea"
+                              placeholder="Enter one question per line&#10;Example:&#10;What's your favorite hobby?&#10;Tell us about your dream vacation&#10;What skill do you want to learn?"
+                              style="display: none;"></textarea>
+                    <button id="upload-questions-btn" class="btn-primary upload-questions-btn" onclick="uploadQuestions()" style="display: none;">
+                        📤 Upload Questions
+                    </button>
+                    <div id="upload-status" class="upload-status"></div>
+                </div>
+                
                 <div class="controls">
                     <button id="start-btn" class="btn-primary" onclick="startRound()">Start Round</button>
                     <button id="next-btn" class="btn-secondary" onclick="nextRound()">Next Round</button>
@@ -315,6 +375,13 @@
             </div>
             
             <div>
+                <h2>Question Preview</h2>
+                <div id="questions-preview" class="status-loading">
+                    <ol id="questions-list" class="questions-list">
+                        <li style="color: #999;">No questions uploaded yet</li>
+                    </ol>
+                </div>
+                
                 <h2>Current Round Pairings</h2>
                 <div id="pairings-container" class="status-loading">Loading pairings...</div>
             </div>
@@ -380,6 +447,10 @@
             
             // Update pairings table
             updatePairingsTable(pairings);
+            
+            // Update questions section
+            updateUIWithQuestionsSection(data);
+            loadQuestionsList();
         }
         
         function updateTimer(seconds, phase) {
@@ -515,6 +586,87 @@
             } catch (error) {
                 alert('Error advancing round: ' + error.message);
                 nextBtn.disabled = false;
+            }
+        }
+        
+        // Questions functionality
+        async function uploadQuestions() {
+            const inputArea = document.getElementById('questions-input');
+            const questionsText = inputArea.value.trim();
+            
+            if (!questionsText) {
+                alert('Please enter at least one question');
+                return;
+            }
+            
+            const questions = questionsText.split('\n')
+                .map(q => q.trim())
+                .filter(q => q.length > 0);
+            
+            const btn = document.getElementById('upload-questions-btn');
+            btn.disabled = true;
+            
+            try {
+                const response = await fetch(API_BASE + '/upload_questions', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({questions: questions})
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('upload-status').textContent = '✓ ' + data.message;
+                    document.getElementById('upload-status').style.color = '#28a745';
+                    inputArea.value = '';
+                    loadQuestionsList();
+                } else {
+                    alert('Error: ' + (data.detail || 'Unknown error'));
+                    document.getElementById('upload-status').textContent = '✗ Upload failed';
+                    document.getElementById('upload-status').style.color = '#dc3545';
+                }
+            } catch (error) {
+                alert('Error uploading questions: ' + error.message);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        
+        async function loadQuestionsList() {
+            try {
+                const response = await fetch(API_BASE + '/list_questions');
+                const data = await response.json();
+                
+                const list = document.getElementById('questions-list');
+                const preview = document.getElementById('questions-preview');
+                
+                if (data.questions.length === 0) {
+                    list.innerHTML = '<li style="color: #999;">No questions uploaded yet</li>';
+                    preview.className = 'status-loading';
+                } else {
+                    list.innerHTML = data.questions
+                        .map((q, i) => `<li>${q.text}</li>`)
+                        .join('');
+                    preview.className = '';
+                }
+            } catch (error) {
+                console.error('Error loading questions:', error);
+            }
+        }
+        
+        function updateUIWithQuestionsSection(data) {
+            const event = data.event;
+            // Show questions section only if event hasn't started yet
+            const questionsInput = document.getElementById('questions-input');
+            const uploadBtn = document.getElementById('upload-questions-btn');
+            const uploadStatus = document.getElementById('upload-status');
+            
+            if (event.status === 'created') {
+                questionsInput.style.display = 'block';
+                uploadBtn.style.display = 'block';
+            } else {
+                questionsInput.style.display = 'none';
+                uploadBtn.style.display = 'none';
             }
         }
         

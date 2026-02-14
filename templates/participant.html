@@ -165,6 +165,30 @@
             color: #0c5460;
         }
         
+        .question-card {
+            background: linear-gradient(135deg, #fff5e6 0%, #ffe8cc 100%);
+            border-left: 4px solid #ff9800;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        
+        .question-label {
+            color: #ff6f00;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .question-text {
+            color: #333;
+            font-size: 18px;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+        
         .modal {
             display: none;
             position: fixed;
@@ -248,6 +272,11 @@
         
         <!-- TALK PHASE: Current Partner -->
         <div id="talk-phase-section" style="display: none;">
+            <div id="question-display-talk" class="question-card" style="display: none;">
+                <div class="question-label">🎯 This Round's Question</div>
+                <div id="question-text-talk" class="question-text">Loading question...</div>
+            </div>
+            
             <div class="partner-section">
                 <div class="partner-label">Your Current Partner</div>
                 <div id="talk-partner-display" class="no-partner-yet">Waiting...</div>
@@ -262,6 +291,11 @@
         
         <!-- BREAK PHASE: Next Partner Preview -->
         <div id="break-phase-section" style="display: none;">
+            <div id="question-display-break" class="question-card" style="display: none;">
+                <div class="question-label">🎯 Next Round's Question</div>
+                <div id="question-text-break" class="question-text">Loading question...</div>
+            </div>
+            
             <div class="partner-section">
                 <div class="partner-label">Your Next Partner</div>
                 <div id="break-partner-display" class="no-partner-yet">Loading next pairing...</div>
@@ -281,6 +315,11 @@
         
         <!-- LOBBY PHASE: Waiting -->
         <div id="lobby-phase-section" style="display: none;">
+            <div id="question-display-lobby" class="question-card" style="display: none;">
+                <div class="question-label">📋 Event Questions</div>
+                <div id="question-text-lobby" class="question-text">Questions will be shown when the event starts</div>
+            </div>
+            
             <div class="partner-section">
                 <div id="lobby-message" class="no-partner-yet">Waiting for the event to start...</div>
             </div>
@@ -319,8 +358,43 @@
                 const response = await fetch(API_BASE + '/my_match?email=' + encodeURIComponent(USER_EMAIL));
                 const data = await response.json();
                 updateUI(data);
+                
+                // Load question for current round
+                await loadQuestion();
             } catch (error) {
                 console.error('Error loading data:', error);
+            }
+        }
+        
+        async function loadQuestion() {
+            try {
+                const response = await fetch(API_BASE + '/current_question');
+                const data = await response.json();
+                displayQuestion(data);
+            } catch (error) {
+                console.error('Error loading question:', error);
+            }
+        }
+        
+        function displayQuestion(data) {
+            const questionDisplayTalk = document.getElementById('question-display-talk');
+            const questionDisplayBreak = document.getElementById('question-display-break');
+            const questionDisplayLobby = document.getElementById('question-display-lobby');
+            
+            // Hide all question displays
+            if (questionDisplayTalk) questionDisplayTalk.style.display = 'none';
+            if (questionDisplayBreak) questionDisplayBreak.style.display = 'none';
+            if (questionDisplayLobby) questionDisplayLobby.style.display = 'none';
+            
+            if (data.status === 'success') {
+                const phase = lastPhase || 'lobby';
+                if (phase === 'talk' && questionDisplayTalk) {
+                    document.getElementById('question-text-talk').textContent = data.question;
+                    questionDisplayTalk.style.display = 'block';
+                } else if (phase === 'break' && questionDisplayBreak) {
+                    document.getElementById('question-text-break').textContent = data.question;
+                    questionDisplayBreak.style.display = 'block';
+                }
             }
         }
         

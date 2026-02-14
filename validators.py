@@ -62,3 +62,45 @@ def validate_event_title(title: str) -> Tuple[bool, str]:
         return False, "Event title must be no more than 100 characters long"
     
     return True, ""
+
+
+def validate_question(question: str) -> Tuple[bool, str]:
+    """
+    Validate a single question.
+    Returns (is_valid, error_message)
+    """
+    if not question:
+        return False, "Question cannot be empty"
+    
+    question = question.strip()
+    
+    if not question:
+        return False, "Question cannot be empty or whitespace only"
+    
+    if len(question) < 5:
+        return False, "Question must be at least 5 characters"
+    
+    if len(question) > 500:
+        return False, "Question must be max 500 characters"
+    
+    return True, ""
+
+
+def validate_questions_batch(questions: list[str]) -> Tuple[bool, str]:
+    """
+    Validate a batch of questions.
+    Returns (is_valid, error_message)
+    """
+    if not questions or len(questions) == 0:
+        return False, "At least one question required"
+    
+    if len(questions) > 50:
+        return False, "Maximum 50 questions allowed"
+    
+    # Check each question
+    for i, q in enumerate(questions):
+        valid, error = validate_question(q)
+        if not valid:
+            return False, f"Question {i+1}: {error}"
+    
+    return True, ""

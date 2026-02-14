@@ -8,8 +8,8 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
 from db import create_db_and_tables, get_session
-from models import Event, Participant, Round, Pairing, PairHistory
-from validators import validate_email, validate_join_code, validate_event_title
+from models import Event, Participant, Round, Pairing, PairHistory, Question
+from validators import validate_email, validate_join_code, validate_event_title, validate_questions_batch
 
 
 app = FastAPI()
@@ -37,6 +37,12 @@ class EventResponse(BaseModel):
     status: str
 
 class JoinRequest(BaseModel):
+    email: str
+
+class QuestionsUploadRequest(BaseModel):
+    questions: list[str]
+
+class MarkMetRequest(BaseModel):
     email: str
 
 def generate_join_code(n: int = 6) -> str:
@@ -915,10 +921,6 @@ def participant_view(join_code: str, email: str, session: Session = Depends(get_
     return template.render(join_code=join_code, safe_email=safe_email)
 
 
-class MarkMetRequest(BaseModel):
-    email: str
-
-
 @app.post("/events/{join_code}/mark_met")
 def mark_met(
     join_code: str, payload: MarkMetRequest, session: Session = Depends(get_session)
@@ -972,3 +974,119 @@ def mark_met(
     session.refresh(pairing)
 
     return {"status": "success", "pairing_id": pairing.id, "met_at": pairing.met_at}
+
+
+@app.post("/events/{join_code}/upload_questions")
+def upload_questions(
+    join_code: str,
+    payload: QuestionsUploadRequest,
+    session: Session = Depends(get_session),
+):
+    """
+    Upload questions for an event (max 50 questions).
+    Only allowed before event starts (status != 'running').
+    Payload: {"questions": ["Question 1?", "Question 2?", ...]}
+    """
+    # Validate event exists
+    event = session.exec(select(Event).where(Event.join_code == join_code)).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Only allow uploading before event is running
+    if event.status == "running":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot upload questions after event has started"
+        )
+    
+    # Validate questions
+    is_valid, error_msg = validate_questions_batch(payload.questions)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+    
+    # Delete existing questions if re-uploading
+    existing = session.exec(
+        select(Question).where(Question.event_id == event.id)
+    ).all()
+    for q in existing:
+        session.delete(q)
+    
+    # Insert new questions with round_number = 1, 2, 3...
+    questions_created = []
+    for round_num, question_text in enumerate(payload.questions, start=1):
+        question = Question(
+            event_id=event.id,
+            round_number=round_num,
+            text=question_text.strip(),
+        )
+        session.add(question)
+        questions_created.append(question)
+    
+    session.commit()
+    
+    return {
+        "status": "success",
+        "questions_uploaded": len(questions_created),
+        "message": f"Successfully uploaded {len(questions_created)} questions"
+    }
+
+
+@app.get("/events/{join_code}/current_question")
+def get_current_question(join_code: str, session: Session = Depends(get_session)):
+    """
+    Get the question for the current round.
+    Returns: {"round": 1, "question": "What's your favorite hobby?"}
+    or {"status": "no_question"} if round not started or no question for this round
+    """
+    event = session.exec(select(Event).where(Event.join_code == join_code)).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    current_round = int(event.current_round or 0)
+    if current_round <= 0:
+        return {"status": "no_question", "message": "Event not started yet"}
+    
+    # Query Question where event_id=event.id AND round_number=current_round
+    question = session.exec(
+        select(Question).where(
+            Question.event_id == event.id,
+            Question.round_number == current_round,
+        )
+    ).first()
+    
+    if not question:
+        return {
+            "status": "no_question",
+            "round": current_round,
+            "message": "No question for this round"
+        }
+    
+    return {
+        "status": "success",
+        "round": current_round,
+        "question": question.text
+    }
+
+
+@app.get("/events/{join_code}/list_questions")
+def list_questions(join_code: str, session: Session = Depends(get_session)):
+    """
+    List all questions for an event, ordered by round.
+    Returns: {"questions": [{"round": 1, "text": "..."}, ...]}
+    """
+    event = session.exec(select(Event).where(Event.join_code == join_code)).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    questions = session.exec(
+        select(Question)
+        .where(Question.event_id == event.id)
+        .order_by(Question.round_number)
+    ).all()
+    
+    return {
+        "questions": [
+            {"round": q.round_number, "text": q.text}
+            for q in questions
+        ]
+    }
