@@ -11,7 +11,6 @@ class Event(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
     join_code: str = Field(index=True, unique=True)
-    facilitator_pin: str = Field(index=True)  # PIN for facilitator authentication
     timezone: str = Field(default="Europe/Minsk")
     created_at: datetime = Field(default_factory=lambda: datetime.now(Minsk_tz))
     status: str = Field(default="created")

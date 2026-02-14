@@ -288,6 +288,29 @@ def test_list_participants(join_code: str):
     except Exception as e:
         results.add_fail("List Participants", str(e))
 
+
+def test_event_info(join_code: str):
+    """Test: Get event metadata via info endpoint"""
+    try:
+        response = requests.get(
+            f"{BASE_URL}/events/{join_code}/info",
+            timeout=TIMEOUT
+        )
+        assert response.status_code == 200, f"Status code: {response.status_code}"
+        
+        info = response.json()
+        assert "title" in info, "Missing title"
+        assert "join_code" in info, "Missing join_code"
+        assert "status" in info, "Missing status"
+        assert "participant_count" in info, "Missing participant_count"
+        assert info["participant_count"] == 4, f"Expected 4 participants, got {info['participant_count']}"
+        assert "total_pairings" in info, "Missing total_pairings"
+        assert "total_unique_pairs" in info, "Missing total_unique_pairs"
+        
+        results.add_pass("Event Info Endpoint", f"Retrieved metadata: {info['participant_count']} participants, {info['total_pairings']} total pairings")
+    except Exception as e:
+        results.add_fail("Event Info Endpoint", str(e))
+
 # ===== RUN ALL TESTS =====
 
 print("\n🚀 Starting Speed Friending Integration Tests...\n")
@@ -343,7 +366,11 @@ if join_code:
     test_list_participants(join_code)
     time.sleep(0.5)
     
-    # Test 13: Next round
+    # Test 13: Event info endpoint
+    test_event_info(join_code)
+    time.sleep(0.5)
+    
+    # Test 14: Next round
     # Wait 2 seconds to allow for break phase timing
     time.sleep(2)
     test_next_round(join_code)

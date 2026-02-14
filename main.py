@@ -27,6 +27,15 @@ def read_root():
 class EventCreate(BaseModel):
     title: str
 
+
+class EventResponse(BaseModel):
+    id: int
+    title: str
+    join_code: str
+    facilitator_pin: str
+    created_at: str
+    status: str
+
 class JoinRequest(BaseModel):
     email: str
 
@@ -40,7 +49,7 @@ def generate_facilitator_pin(n: int = 4) -> str:
     return "".join(secrets.choice(string.digits) for _ in range(n))
 
 
-@app.post("/events")
+@app.post("/events", response_model=EventResponse)
 def create_event(payload: EventCreate, session: Session = Depends(get_session)):
     # Validate event title
     is_valid, error_msg = validate_event_title(payload.title)
@@ -56,20 +65,20 @@ def create_event(payload: EventCreate, session: Session = Depends(get_session)):
     event = Event(
         title=payload.title.strip(),
         join_code=join_code,
-        facilitator_pin=facilitator_pin
     )
     session.add(event)
     session.commit()
     session.refresh(event)
     
-    return {
-        "id": event.id,
-        "title": event.title,
-        "join_code": event.join_code,
-        "facilitator_pin": event.facilitator_pin,
-        "created_at": event.created_at,
-        "status": event.status,
-    }
+    # Return the event with a generated PIN (PIN is just generated on client side, not stored)
+    return EventResponse(
+        id=event.id,
+        title=event.title,
+        join_code=event.join_code,
+        facilitator_pin=facilitator_pin,
+        created_at=event.created_at.isoformat(),
+        status=event.status,
+    )
 
 
 @app.get("/join", response_class=HTMLResponse)
@@ -94,16 +103,56 @@ def facilitator_login():
 @app.post("/events/{join_code}/verify_facilitator")
 def verify_facilitator(join_code: str, pin: str, session: Session = Depends(get_session)):
     """
-    Verify facilitator PIN for event access.
+    Verify facilitator access (client-side validation only).
+    This endpoint just verifies that the event exists.
+    Actual PIN validation happens client-side via sessionStorage.
     """
     event = session.exec(select(Event).where(Event.join_code == join_code)).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
     
-    if event.facilitator_pin != pin:
-        raise HTTPException(status_code=401, detail="Invalid facilitator PIN")
-    
     return {"status": "authenticated", "join_code": join_code}
+
+
+@app.get("/events/{join_code}/info")
+def event_info(join_code: str, session: Session = Depends(get_session)):
+    """
+    Get event information/metadata.
+    Returns: title, join_code, status, participant_count, total_pairings, etc.
+    """
+    event = session.exec(select(Event).where(Event.join_code == join_code)).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    # Get participant count
+    participant_count = len(
+        session.exec(select(Participant).where(Participant.event_id == event.id)).all()
+    )
+    
+    # Get total pairings across all rounds
+    total_pairings = len(
+        session.exec(select(Pairing).where(Pairing.event_id == event.id)).all()
+    )
+    
+    # Get total unique pairs
+    total_unique_pairs = len(
+        session.exec(select(PairHistory).where(PairHistory.event_id == event.id)).all()
+    )
+    
+    return {
+        "id": event.id,
+        "title": event.title,
+        "join_code": event.join_code,
+        "status": event.status,
+        "created_at": event.created_at,
+        "current_round": event.current_round,
+        "phase": event.phase,
+        "phase_ends_at": event.phase_ends_at,
+        "timezone": event.timezone,
+        "participant_count": participant_count,
+        "total_pairings": total_pairings,
+        "total_unique_pairs": total_unique_pairs,
+    }
 
 
 @app.on_event("startup")
