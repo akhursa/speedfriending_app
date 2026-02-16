@@ -1,12 +1,70 @@
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+# Environment variables (NEVER COMMIT SECRETS)
+.env
+.env.local
+.env.*.local
+.env.production
 
-speedfriending.db
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Databases
+*.db
 *.sqlite
 *.sqlite3
+database.db
+speedfriending.db
 
-.env
-.venv/
-venv/
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.pid
+pip-log.txt
+pip-delete-this-directory.txt
+

@@ -1,18 +1,45 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel
 from sqlmodel import Session, select
 import secrets
 import string
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+
+from config import config
 from db import create_db_and_tables, get_session
 from models import Event, Participant, Round, Pairing, PairHistory, Question
 from validators import validate_email, validate_join_code, validate_event_title, validate_questions_batch
 
 
-app = FastAPI()
+app = FastAPI(
+    title="Speed Friending API",
+    description="Real-time speed dating event management platform",
+    version="1.0.0",
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=config.ALLOWED_HOSTS if config.is_production() else ["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["*"],
+)
+
+# Add trusted host middleware (security)
+if config.is_production():
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=config.ALLOWED_HOSTS,
+    )
 
 # Set up Jinja2 template environment
 templates_dir = Path(__file__).parent / "templates"
@@ -323,12 +350,11 @@ def make_pairs(
 
 from datetime import datetime
 from zoneinfo import ZoneInfo
-import os
 
 MINSK_TZ = ZoneInfo("Europe/Minsk")
 
-# Configurable break duration (default 60 seconds, can be set via env var for testing)
-BREAK_DURATION_SECONDS = int(os.getenv("BREAK_DURATION_SECONDS", "60"))
+# Break duration configuration (loaded from config module which reads .env)
+BREAK_DURATION_SECONDS = config.BREAK_DURATION_SECONDS
 
 
 @app.post("/events/{join_code}/start_round")

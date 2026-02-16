@@ -1,0 +1,12 @@
+{
+  "variables": {
+    "ENVIRONMENT": {
+      "description": "Application environment: development or production",
+      "value": "production"
+    },
+    "BREAK_DURATION_SECONDS": {
+      "description": "Duration of break between rounds (in seconds)",
+      "value": "60"
+    }
+  }
+}
