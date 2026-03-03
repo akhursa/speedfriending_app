@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,7 +11,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -20,7 +21,7 @@
             justify-content: center;
             padding: 20px;
         }
-        
+
         .container {
             background: white;
             border-radius: 16px;
@@ -30,22 +31,22 @@
             padding: 40px;
             text-align: center;
         }
-        
+
         .header {
             margin-bottom: 30px;
         }
-        
+
         .header h1 {
             font-size: 28px;
             color: #333;
             margin-bottom: 10px;
         }
-        
+
         .header p {
             color: #666;
             font-size: 14px;
         }
-        
+
         .timer {
             font-size: 48px;
             font-weight: bold;
@@ -53,15 +54,15 @@
             margin: 30px 0;
             font-family: 'Monaco', 'Courier New', monospace;
         }
-        
+
         .timer.warning {
             color: #ffc107;
         }
-        
+
         .timer.critical {
             color: #ff4444;
         }
-        
+
         .phase-badge {
             display: inline-block;
             padding: 8px 16px;
@@ -72,29 +73,29 @@
             letter-spacing: 1px;
             margin-bottom: 20px;
         }
-        
+
         .phase-talk {
             background: #d4edda;
             color: #155724;
         }
-        
+
         .phase-break {
             background: #fff3cd;
             color: #856404;
         }
-        
+
         .phase-lobby {
             background: #d1ecf1;
             color: #0c5460;
         }
-        
+
         .partner-section {
             background: #f8f9ff;
             border-radius: 12px;
             padding: 30px;
             margin: 30px 0;
         }
-        
+
         .partner-label {
             color: #666;
             font-size: 14px;
@@ -102,26 +103,26 @@
             letter-spacing: 1px;
             margin-bottom: 10px;
         }
-        
+
         .partner-nickname {
             font-size: 24px;
             font-weight: bold;
             color: #333;
             word-break: break-word;
         }
-        
+
         .no-partner-yet {
             color: #999;
             font-style: italic;
             font-size: 16px;
         }
-        
+
         .action-buttons {
             display: grid;
             gap: 12px;
             margin: 30px 0;
         }
-        
+
         button {
             padding: 16px 32px;
             font-size: 16px;
@@ -131,22 +132,22 @@
             font-weight: 600;
             transition: all 0.3s ease;
         }
-        
+
         .btn-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
-        
+
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
         }
-        
+
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
-        
+
         .status-indicator {
             margin-top: 20px;
             padding: 12px;
@@ -154,17 +155,17 @@
             font-size: 14px;
             font-weight: 600;
         }
-        
+
         .status-met {
             background: #d4edda;
             color: #155724;
         }
-        
+
         .status-pending {
             background: #d1ecf1;
             color: #0c5460;
         }
-        
+
         .question-card {
             background: linear-gradient(135deg, #fff5e6 0%, #ffe8cc 100%);
             border-left: 4px solid #ff9800;
@@ -172,7 +173,7 @@
             margin-bottom: 20px;
             border-radius: 8px;
         }
-        
+
         .question-label {
             color: #ff6f00;
             font-size: 12px;
@@ -181,14 +182,14 @@
             margin-bottom: 8px;
             font-weight: 600;
         }
-        
+
         .question-text {
             color: #333;
             font-size: 18px;
             font-weight: 500;
             line-height: 1.5;
         }
-        
+
         .modal {
             display: none;
             position: fixed;
@@ -199,13 +200,13 @@
             height: 100%;
             background-color: rgba(0, 0, 0, 0.5);
         }
-        
+
         .modal.show {
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        
+
         .modal-content {
             background-color: white;
             padding: 40px;
@@ -215,24 +216,25 @@
             max-width: 500px;
             animation: slideIn 0.3s ease;
         }
-        
+
         @keyframes slideIn {
             from {
                 transform: translateY(-50px);
                 opacity: 0;
             }
+
             to {
                 transform: translateY(0);
                 opacity: 1;
             }
         }
-        
+
         .modal-content h2 {
             font-size: 28px;
             color: #333;
             margin-bottom: 20px;
         }
-        
+
         .modal-content .next-partner {
             font-size: 20px;
             color: #667eea;
@@ -242,11 +244,11 @@
             background: #f8f9ff;
             border-radius: 8px;
         }
-        
+
         .modal-content button {
             margin-top: 20px;
         }
-        
+
         .info-box {
             background: #e7f3ff;
             border-left: 4px solid #667eea;
@@ -259,36 +261,37 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
             <h1>⚡ Speed Friending</h1>
             <p id="event-title">Loading event...</p>
         </div>
-        
+
         <div id="phase-badge" class="phase-badge">-</div>
-        
+
         <div class="timer" id="timer">--:--</div>
-        
+
         <!-- TALK PHASE: Current Partner -->
         <div id="talk-phase-section" style="display: none;">
             <div id="question-display-talk" class="question-card" style="display: none;">
                 <div class="question-label">🎯 This Round's Question</div>
                 <div id="question-text-talk" class="question-text">Loading question...</div>
             </div>
-            
+
             <div class="partner-section">
                 <div class="partner-label">Your Current Partner</div>
                 <div id="talk-partner-display" class="no-partner-yet">Waiting...</div>
             </div>
-            
+
             <div class="action-buttons">
                 <button id="met-btn" class="btn-primary" onclick="markMet()">
                     ✓ We Have Met
                 </button>
             </div>
         </div>
-        
+
         <!-- BREAK PHASE: Next Partner Preview -->
         <div id="break-phase-section" style="display: none;">
             <div id="break-next-partner-section" style="display: none;">
@@ -297,30 +300,30 @@
                     <div id="break-partner-display" class="no-partner-yet">Loading next pairing...</div>
                 </div>
             </div>
-            
+
             <div class="info-box" id="break-info-box">
                 <strong>Break Time!</strong><br>
                 Relax and recharge!
             </div>
         </div>
-        
+
         <!-- LOBBY PHASE: Waiting -->
         <div id="lobby-phase-section" style="display: none;">
             <div id="question-display-lobby" class="question-card" style="display: none;">
                 <div class="question-label">📋 Event Questions</div>
                 <div id="question-text-lobby" class="question-text">Questions will be shown when the event starts</div>
             </div>
-            
+
             <div class="partner-section">
                 <div id="lobby-message" class="no-partner-yet">Waiting for the event to start...</div>
             </div>
         </div>
-        
+
         <div id="status-indicator" style="display: none;" class="status-indicator status-pending">
             ✓ Status: Marked as Met
         </div>
     </div>
-    
+
     <!-- Notification Modal for Round End -->
     <div id="round-end-modal" class="modal">
         <div class="modal-content">
@@ -334,29 +337,29 @@
         const JOIN_CODE = '{{ join_code }}';
         const USER_NICKNAME = '{{ safe_nickname }}';
         const API_BASE = '/events/' + JOIN_CODE;
-        
+
         let currentData = null;
         let lastRound = 0;
         let lastPhase = 'lobby';
         let timerInterval = null;
-        
+
         async function loadData() {
             try {
                 // First, call auto_advance to check if phase should transition
                 await autoAdvancePhase();
-                
+
                 // Then load match data
                 const response = await fetch(API_BASE + '/my_match?nickname=' + encodeURIComponent(USER_NICKNAME));
                 const data = await response.json();
                 updateUI(data);
-                
+
                 // Load question for current round
                 await loadQuestion();
             } catch (error) {
                 console.error('Error loading data:', error);
             }
         }
-        
+
         async function loadQuestion() {
             try {
                 const response = await fetch(API_BASE + '/current_question');
@@ -366,16 +369,16 @@
                 console.error('Error loading question:', error);
             }
         }
-        
+
         function displayQuestion(data) {
             const questionDisplayTalk = document.getElementById('question-display-talk');
             const questionDisplayBreak = document.getElementById('question-display-break');
             const questionDisplayLobby = document.getElementById('question-display-lobby');
-            
+
             // Hide all question displays
             if (questionDisplayTalk) questionDisplayTalk.style.display = 'none';
             if (questionDisplayLobby) questionDisplayLobby.style.display = 'none';
-            
+
             if (data.status === 'success') {
                 const phase = lastPhase || 'lobby';
                 if (phase === 'talk' && questionDisplayTalk) {
@@ -384,12 +387,12 @@
                 }
             }
         }
-        
+
         async function autoAdvancePhase() {
             try {
-                const response = await fetch(API_BASE + '/auto_advance', {method: 'POST'});
+                const response = await fetch(API_BASE + '/auto_advance', { method: 'POST' });
                 const result = await response.json();
-                
+
                 if (result.status === 'advanced' && result.auto_advanced) {
                     console.log('Auto-advanced:', result);
                 }
@@ -397,29 +400,29 @@
                 console.error('Error in auto_advance:', error);
             }
         }
-        
+
         function updateUI(data) {
             const currentRound = data.current_round || 0;
             const status = data.status || 'waiting';
             const phase = data.phase || 'lobby';
-            
+
             lastRound = currentRound;
             lastPhase = phase;
-            
+
             // Fetch full event state for timer and phase confirmation
             fetchEventState();
-            
+
             // Hide all phase sections
             document.getElementById('talk-phase-section').style.display = 'none';
             document.getElementById('break-phase-section').style.display = 'none';
             document.getElementById('lobby-phase-section').style.display = 'none';
-            
+
             // Show appropriate section based on phase
             if (phase === 'talk') {
                 document.getElementById('talk-phase-section').style.display = 'block';
                 const talkPartnerDisplay = document.getElementById('talk-partner-display');
                 const metBtn = document.getElementById('met-btn');
-                
+
                 if (status === 'no_pair' || status === 'resting') {
                     talkPartnerDisplay.innerHTML = '<span class="no-partner-yet">Resting this round<br>(You\'ll meet next round!)</span>';
                     metBtn.style.display = 'none';
@@ -432,7 +435,7 @@
                 }
             } else if (phase === 'break') {
                 document.getElementById('break-phase-section').style.display = 'block';
-                
+
                 if (status === 'next_partner_preview') {
                     document.getElementById('break-next-partner-section').style.display = 'block';
                     document.getElementById('break-partner-display').textContent = data.next_partner.nickname;
@@ -448,52 +451,52 @@
                 document.getElementById('lobby-phase-section').style.display = 'block';
             }
         }
-        
+
         async function fetchEventState() {
             try {
                 const response = await fetch(API_BASE + '/state');
                 const state = await response.json();
-                
+
                 document.getElementById('event-title').textContent = state.join_code + ' - ' + state.status.toUpperCase();
-                
+
                 const phaseBadge = document.getElementById('phase-badge');
                 const phase = state.phase || 'lobby';
-                
+
                 phaseBadge.textContent = phase.toUpperCase();
                 phaseBadge.className = 'phase-badge phase-' + phase;
-                
+
                 updateTimer(state.seconds_left, phase);
             } catch (error) {
                 console.error('Error loading event state:', error);
             }
         }
-        
+
         function updateTimer(seconds, phase) {
             const timerEl = document.getElementById('timer');
-            
+
             function formatTime(s) {
                 const mins = Math.floor(s / 60);
                 const secs = s % 60;
                 return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
             }
-            
+
             if (timerInterval) clearInterval(timerInterval);
-            
+
             if (phase === 'lobby') {
                 timerEl.textContent = '--:--';
                 timerEl.className = 'timer';
                 return;
             }
-            
+
             let remaining = seconds;
             timerEl.textContent = formatTime(remaining);
-            
+
             timerInterval = setInterval(() => {
                 remaining--;
                 if (remaining < 0) remaining = 0;
-                
+
                 timerEl.textContent = formatTime(remaining);
-                
+
                 // Color warning: yellow at 30s, red at 10s
                 timerEl.className = 'timer';
                 if (remaining <= 10) {
@@ -501,24 +504,24 @@
                 } else if (remaining <= 30) {
                     timerEl.classList.add('warning');
                 }
-                
+
                 if (remaining === 0) {
                     clearInterval(timerInterval);
                 }
             }, 1000);
         }
-        
+
         async function markMet() {
             const btn = document.getElementById('met-btn');
             btn.disabled = true;
-            
+
             try {
                 const response = await fetch(API_BASE + '/mark_met', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({nickname: USER_NICKNAME})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname: USER_NICKNAME })
                 });
-                
+
                 const result = await response.json();
                 if (response.ok) {
                     // Show status message
@@ -536,19 +539,19 @@
                 btn.disabled = false;
             }
         }
-        
+
         async function markMetDuringBreak() {
             const btn = document.getElementById('mark-met-break-btn');
             btn.disabled = true;
-            
+
             try {
                 // During break, we try to mark the current round as met (if not done yet)
                 const response = await fetch(API_BASE + '/mark_met', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({nickname: USER_NICKNAME})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nickname: USER_NICKNAME })
                 });
-                
+
                 const result = await response.json();
                 if (response.ok) {
                     btn.textContent = '✓ Marked as Met';
@@ -570,10 +573,11 @@
                 btn.disabled = false;
             }
         }
-        
+
         // Initial load and auto-refresh
         loadData();
         setInterval(loadData, 2000); // Refresh every 2 seconds
     </script>
 </body>
+
 </html>

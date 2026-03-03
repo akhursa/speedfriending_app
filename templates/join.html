@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -36,6 +37,7 @@
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -214,7 +216,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .btn-content {
@@ -249,6 +253,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
@@ -262,28 +267,15 @@
         <form id="joinForm">
             <div class="form-group">
                 <label for="joinCode">Event Code</label>
-                <input 
-                    type="text" 
-                    id="joinCode" 
-                    name="join_code" 
-                    placeholder="e.g., ABC123"
-                    maxlength="10"
-                    required
-                    autocomplete="off"
-                >
+                <input type="text" id="joinCode" name="join_code" placeholder="e.g., ABC123" maxlength="10" required
+                    autocomplete="off">
                 <div class="form-note">You should have received this from the facilitator</div>
             </div>
 
             <div class="form-group">
                 <label for="nickname">Nickname</label>
-                <input 
-                    type="nickname" 
-                    id="nickname" 
-                    name="nickname" 
-                    placeholder="SunnySun"
-                    required
-                    autocomplete="nickname"
-                >
+                <input type="nickname" id="nickname" name="nickname" placeholder="SunnySun" required
+                    autocomplete="nickname">
                 <div class="form-note">We'll use this to match you with other participants</div>
             </div>
 
@@ -353,14 +345,14 @@
             const btn = document.getElementById('joinBtn');
             const btnText = document.getElementById('btnText');
             const originalText = btnText.textContent;
-            
+
             btn.disabled = true;
             btnText.innerHTML = '<div class="loading"></div>Joining...';
 
             try {
                 // First, verify the event exists
                 const eventCheckResponse = await fetch(`${API_BASE}/events/${joinCode}/state`);
-                
+
                 if (!eventCheckResponse.ok) {
                     if (eventCheckResponse.status === 404) {
                         throw new Error('Event not found. Please check the event code.');
@@ -399,13 +391,14 @@
         });
 
         // Clear error styling on input
-        document.getElementById('joinCode').addEventListener('input', function() {
+        document.getElementById('joinCode').addEventListener('input', function () {
             this.classList.remove('error');
         });
 
-        document.getElementById('nickname').addEventListener('input', function() {
+        document.getElementById('nickname').addEventListener('input', function () {
             this.classList.remove('error');
         });
     </script>
 </body>
+
 </html>

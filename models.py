@@ -64,6 +64,8 @@ class PairHistory(SQLModel, table=True):
 class Question(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     event_id: int = Field(index=True, foreign_key="event.id")
-    round_number: int = Field(index=True)  # Which round this question is for (1, 2, 3...)
+    round_number: int = Field(
+        index=True
+    )  # Which round this question is for (1, 2, 3...)
     text: str = Field(max_length=500)  # The question text
     created_at: datetime = Field(default_factory=lambda: datetime.now(Minsk_tz))

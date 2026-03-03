@@ -16,7 +16,12 @@ load_dotenv()
 from config import config
 from db import create_db_and_tables, get_session
 from models import Event, Participant, Round, Pairing, PairHistory, Question
-from validators import validate_nickname, validate_join_code, validate_event_title, validate_questions_batch
+from validators import (
+    validate_nickname,
+    validate_join_code,
+    validate_event_title,
+    validate_questions_batch,
+)
 
 
 app = FastAPI(
@@ -51,6 +56,7 @@ def read_root():
     template = jinja_env.get_template("index.html")
     return template.render()
 
+
 class EventCreate(BaseModel):
     title: str
 
@@ -63,15 +69,19 @@ class EventResponse(BaseModel):
     created_at: str
     status: str
 
+
 class JoinRequest(BaseModel):
     nickname: str
     email: Optional[str] = None
 
+
 class QuestionsUploadRequest(BaseModel):
     questions: list[str]
 
+
 class MarkMetRequest(BaseModel):
     nickname: str
+
 
 def generate_join_code(n: int = 6) -> str:
     alphabet = string.ascii_uppercase + string.digits
@@ -89,13 +99,13 @@ def create_event(payload: EventCreate, session: Session = Depends(get_session)):
     is_valid, error_msg = validate_event_title(payload.title)
     if not is_valid:
         raise HTTPException(status_code=400, detail=error_msg)
-    
+
     join_code = generate_join_code()
     while session.exec(select(Event).where(Event.join_code == join_code)).first():
         join_code = generate_join_code()
 
     facilitator_pin = generate_facilitator_pin()
-    
+
     event = Event(
         title=payload.title.strip(),
         join_code=join_code,
@@ -103,7 +113,7 @@ def create_event(payload: EventCreate, session: Session = Depends(get_session)):
     session.add(event)
     session.commit()
     session.refresh(event)
-    
+
     # Return the event with a generated PIN (PIN is just generated on client side, not stored)
     return EventResponse(
         id=event.id,
@@ -135,7 +145,9 @@ def facilitator_login():
 
 
 @app.post("/events/{join_code}/verify_facilitator")
-def verify_facilitator(join_code: str, pin: str, session: Session = Depends(get_session)):
+def verify_facilitator(
+    join_code: str, pin: str, session: Session = Depends(get_session)
+):
     """
     Verify facilitator access (client-side validation only).
     This endpoint just verifies that the event exists.
@@ -144,7 +156,7 @@ def verify_facilitator(join_code: str, pin: str, session: Session = Depends(get_
     event = session.exec(select(Event).where(Event.join_code == join_code)).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    
+
     return {"status": "authenticated", "join_code": join_code}
 
 
@@ -157,22 +169,22 @@ def event_info(join_code: str, session: Session = Depends(get_session)):
     event = session.exec(select(Event).where(Event.join_code == join_code)).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    
+
     # Get participant count
     participant_count = len(
         session.exec(select(Participant).where(Participant.event_id == event.id)).all()
     )
-    
+
     # Get total pairings across all rounds
     total_pairings = len(
         session.exec(select(Pairing).where(Pairing.event_id == event.id)).all()
     )
-    
+
     # Get total unique pairs
     total_unique_pairs = len(
         session.exec(select(PairHistory).where(PairHistory.event_id == event.id)).all()
     )
-    
+
     return {
         "id": event.id,
         "title": event.title,
@@ -205,14 +217,14 @@ def join_event(
     code_valid, code_error = validate_join_code(join_code)
     if not code_valid:
         raise HTTPException(status_code=400, detail=code_error)
-    
+
     nickname_valid, nickname_error = validate_nickname(payload.nickname)
     if not nickname_valid:
         raise HTTPException(status_code=400, detail=nickname_error)
-    
+
     # Normalize nickname to lowercase
     normalized_nickname = payload.nickname.strip().lower()
-    
+
     event = session.exec(select(Event).where(Event.join_code == join_code)).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
@@ -229,9 +241,7 @@ def join_event(
         )
 
     participant = Participant(
-        event_id=event.id,
-        nickname=normalized_nickname,
-        email=payload.email
+        event_id=event.id, nickname=normalized_nickname, email=payload.email
     )
     session.add(participant)
     session.commit()
@@ -297,7 +307,9 @@ def make_pairs(
         # Pick the participant with the least rests.
         # For ties, rotate fairly using round_number and sorted order (by pid).
         min_rest = min(rest_counts.values())
-        candidates = sorted([pid for pid in participant_ids if rest_counts[pid] == min_rest])
+        candidates = sorted(
+            [pid for pid in participant_ids if rest_counts[pid] == min_rest]
+        )
         # Use round_number to deterministically rotate among tied candidates
         rest_person = candidates[(round_number - 1) % len(candidates)]
 
@@ -439,10 +451,11 @@ def my_match(join_code: str, nickname: str, session: Session = Depends(get_sessi
 
     # Normalize nickname
     normalized_nickname = nickname.strip().lower()
-    
+
     participant = session.exec(
         select(Participant).where(
-            Participant.event_id == event.id, Participant.nickname == normalized_nickname
+            Participant.event_id == event.id,
+            Participant.nickname == normalized_nickname,
         )
     ).first()
     if not participant:
@@ -467,18 +480,30 @@ def my_match(join_code: str, nickname: str, session: Session = Depends(get_sessi
         ).first()
 
         if not pairing:
-            return {"status": "no_pair", "current_round": current_round, "phase": "talk"}
+            return {
+                "status": "no_pair",
+                "current_round": current_round,
+                "phase": "talk",
+            }
 
         partner_id = pairing.p2_id if pairing.p1_id == participant.id else pairing.p1_id
 
         if partner_id is None:
-            return {"status": "no_pair", "current_round": current_round, "phase": "talk"}
+            return {
+                "status": "no_pair",
+                "current_round": current_round,
+                "phase": "talk",
+            }
 
         partner = session.exec(
             select(Participant).where(Participant.id == partner_id)
         ).first()
         if not partner:
-            return {"status": "no_pair", "current_round": current_round, "phase": "talk"}
+            return {
+                "status": "no_pair",
+                "current_round": current_round,
+                "phase": "talk",
+            }
 
         return {
             "status": "paired",
@@ -489,7 +514,7 @@ def my_match(join_code: str, nickname: str, session: Session = Depends(get_sessi
                 "nickname": partner.nickname,
             },
         }
-    
+
     # During BREAK phase: show next round partner
     elif current_phase == "break":
         next_round = current_round + 1
@@ -503,19 +528,36 @@ def my_match(join_code: str, nickname: str, session: Session = Depends(get_sessi
 
         if not next_pairing:
             # Next round pairings not yet generated
-            return {"status": "waiting_for_pairing", "phase": "break", "current_round": current_round}
+            return {
+                "status": "waiting_for_pairing",
+                "phase": "break",
+                "current_round": current_round,
+            }
 
-        partner_id = next_pairing.p2_id if next_pairing.p1_id == participant.id else next_pairing.p1_id
+        partner_id = (
+            next_pairing.p2_id
+            if next_pairing.p1_id == participant.id
+            else next_pairing.p1_id
+        )
 
         if partner_id is None:
             # This participant will rest in next round
-            return {"status": "resting", "phase": "break", "current_round": current_round, "next_round": next_round}
+            return {
+                "status": "resting",
+                "phase": "break",
+                "current_round": current_round,
+                "next_round": next_round,
+            }
 
         partner = session.exec(
             select(Participant).where(Participant.id == partner_id)
         ).first()
         if not partner:
-            return {"status": "waiting_for_pairing", "phase": "break", "current_round": current_round}
+            return {
+                "status": "waiting_for_pairing",
+                "phase": "break",
+                "current_round": current_round,
+            }
 
         return {
             "status": "next_partner_preview",
@@ -527,9 +569,13 @@ def my_match(join_code: str, nickname: str, session: Session = Depends(get_sessi
                 "nickname": partner.nickname,
             },
         }
-    
+
     else:
-        return {"status": "unknown_phase", "current_round": current_round, "phase": current_phase}
+        return {
+            "status": "unknown_phase",
+            "current_round": current_round,
+            "phase": current_phase,
+        }
 
 
 @app.get("/events/{join_code}/state")
@@ -765,7 +811,7 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
         break_ends_at = now + timedelta(seconds=BREAK_DURATION_SECONDS)
         event.phase = "break"
         event.phase_ends_at = break_ends_at
-        
+
         # Generate pairings for NEXT round (participants will see this during break)
         next_round_number = int(event.current_round or 0) + 1
         ids = [p.id for p in participants if p.id is not None]
@@ -775,7 +821,7 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
             participant_ids=ids,
             round_number=next_round_number,
         )
-        
+
         for p1_id, p2_id in pairs:
             session.add(
                 Pairing(
@@ -785,7 +831,7 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
                     p2_id=p2_id,
                 )
             )
-        
+
         session.add(event)
         session.commit()
         return {
@@ -874,7 +920,7 @@ def dashboard(join_code: str, session: Session = Depends(get_session)):
 
     current_round = int(event.current_round or 0)
     pairings = []
-    
+
     if current_round > 0:
         pairings_data = session.exec(
             select(Pairing).where(
@@ -882,17 +928,27 @@ def dashboard(join_code: str, session: Session = Depends(get_session)):
                 Pairing.round_number == current_round,
             )
         ).all()
-        
+
         for pairing in pairings_data:
-            p1 = session.exec(select(Participant).where(Participant.id == pairing.p1_id)).first()
-            p2 = session.exec(select(Participant).where(Participant.id == pairing.p2_id)).first() if pairing.p2_id else None
-            
-            pairings.append({
-                "id": pairing.id,
-                "p1": {"id": p1.id, "nickname": p1.nickname} if p1 else None,
-                "p2": {"id": p2.id, "nickname": p2.nickname} if p2 else None,
-                "status": pairing.status,
-            })
+            p1 = session.exec(
+                select(Participant).where(Participant.id == pairing.p1_id)
+            ).first()
+            p2 = (
+                session.exec(
+                    select(Participant).where(Participant.id == pairing.p2_id)
+                ).first()
+                if pairing.p2_id
+                else None
+            )
+
+            pairings.append(
+                {
+                    "id": pairing.id,
+                    "p1": {"id": p1.id, "nickname": p1.nickname} if p1 else None,
+                    "p2": {"id": p2.id, "nickname": p2.nickname} if p2 else None,
+                    "status": pairing.status,
+                }
+            )
 
     # Calculate seconds left
     now = datetime.now(MINSK_TZ)
@@ -913,16 +969,15 @@ def dashboard(join_code: str, session: Session = Depends(get_session)):
             "phase": getattr(event, "phase", "lobby"),
             "seconds_left": seconds_left,
         },
-        "participants": [
-            {"id": p.id, "nickname": p.nickname}
-            for p in participants
-        ],
+        "participants": [{"id": p.id, "nickname": p.nickname} for p in participants],
         "pairings": pairings,
     }
 
 
 @app.get("/events/{join_code}/participant_view", response_class=HTMLResponse)
-def participant_view(join_code: str, nickname: str, session: Session = Depends(get_session)):
+def participant_view(
+    join_code: str, nickname: str, session: Session = Depends(get_session)
+):
     """
     Participant view showing current partner and round status.
     Returns the participant.html template.
@@ -933,17 +988,22 @@ def participant_view(join_code: str, nickname: str, session: Session = Depends(g
 
     # Normalize nickname
     normalized_nickname = nickname.strip().lower()
-    
+
     participant = session.exec(
         select(Participant).where(
-            Participant.event_id == event.id, Participant.nickname == normalized_nickname
+            Participant.event_id == event.id,
+            Participant.nickname == normalized_nickname,
         )
     ).first()
     if not participant:
         raise HTTPException(status_code=404, detail="Participant not found")
 
     # Sanitize nickname for safe use in HTML
-    safe_nickname = normalized_nickname.replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+    safe_nickname = (
+        normalized_nickname.replace('"', "&quot;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+    )
 
     template = jinja_env.get_template("participant.html")
     return template.render(join_code=join_code, safe_nickname=safe_nickname)
@@ -966,16 +1026,17 @@ def mark_met(
     current_phase = getattr(event, "phase", "talk")
     if current_phase != "talk":
         raise HTTPException(
-            status_code=400, 
-            detail=f"Can only mark as met during talk phase. Current phase: {current_phase}"
+            status_code=400,
+            detail=f"Can only mark as met during talk phase. Current phase: {current_phase}",
         )
 
     # Normalize nickname
     normalized_nickname = payload.nickname.strip().lower()
-    
+
     participant = session.exec(
         select(Participant).where(
-            Participant.event_id == event.id, Participant.nickname == normalized_nickname
+            Participant.event_id == event.id,
+            Participant.nickname == normalized_nickname,
         )
     ).first()
     if not participant:
@@ -1019,26 +1080,23 @@ def upload_questions(
     event = session.exec(select(Event).where(Event.join_code == join_code)).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    
+
     # Only allow uploading before event is running
     if event.status == "running":
         raise HTTPException(
-            status_code=400,
-            detail="Cannot upload questions after event has started"
+            status_code=400, detail="Cannot upload questions after event has started"
         )
-    
+
     # Validate questions
     is_valid, error_msg = validate_questions_batch(payload.questions)
     if not is_valid:
         raise HTTPException(status_code=400, detail=error_msg)
-    
+
     # Delete existing questions if re-uploading
-    existing = session.exec(
-        select(Question).where(Question.event_id == event.id)
-    ).all()
+    existing = session.exec(select(Question).where(Question.event_id == event.id)).all()
     for q in existing:
         session.delete(q)
-    
+
     # Insert new questions with round_number = 1, 2, 3...
     questions_created = []
     for round_num, question_text in enumerate(payload.questions, start=1):
@@ -1049,13 +1107,13 @@ def upload_questions(
         )
         session.add(question)
         questions_created.append(question)
-    
+
     session.commit()
-    
+
     return {
         "status": "success",
         "questions_uploaded": len(questions_created),
-        "message": f"Successfully uploaded {len(questions_created)} questions"
+        "message": f"Successfully uploaded {len(questions_created)} questions",
     }
 
 
@@ -1069,35 +1127,31 @@ def get_current_question(join_code: str, session: Session = Depends(get_session)
     event = session.exec(select(Event).where(Event.join_code == join_code)).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    
+
     current_round = int(event.current_round or 0)
     if current_round <= 0:
         return {"status": "no_question", "message": "Event not started yet"}
-    
+
     # During break, show next round's question
     target_round = current_round
-    if getattr(event, 'phase', 'talk') == 'break':
+    if getattr(event, "phase", "talk") == "break":
         target_round = current_round + 1
-    
+
     question = session.exec(
         select(Question).where(
             Question.event_id == event.id,
             Question.round_number == target_round,
         )
     ).first()
-    
+
     if not question:
         return {
             "status": "no_question",
             "round": target_round,
-            "message": "No question for this round"
+            "message": "No question for this round",
         }
-    
-    return {
-        "status": "success",
-        "round": target_round,
-        "question": question.text
-    }
+
+    return {"status": "success", "round": target_round, "question": question.text}
 
 
 @app.get("/events/{join_code}/list_questions")
@@ -1109,16 +1163,11 @@ def list_questions(join_code: str, session: Session = Depends(get_session)):
     event = session.exec(select(Event).where(Event.join_code == join_code)).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    
+
     questions = session.exec(
         select(Question)
         .where(Question.event_id == event.id)
         .order_by(Question.round_number)
     ).all()
-    
-    return {
-        "questions": [
-            {"round": q.round_number, "text": q.text}
-            for q in questions
-        ]
-    }
+
+    return {"questions": [{"round": q.round_number, "text": q.text} for q in questions]}
