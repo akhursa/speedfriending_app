@@ -176,7 +176,7 @@
             align-items: center;
         }
         
-        .participant-email {
+        .participant-nickname {
             font-weight: 500;
             color: #333;
         }
@@ -497,7 +497,7 @@
             
             listEl.innerHTML = participants.map(p => `
                 <li class="participant-item">
-                    <span class="participant-email">${p.email}</span>
+                    <span class="participant-nickname">${p.nickname}</span>
                 </li>
             `).join('');
         }
@@ -513,22 +513,22 @@
             let html = '<table class="pairings-table"><thead><tr><th>#</th><th>Participant 1</th><th>Participant 2</th><th>Status</th></tr></thead><tbody>';
             
             pairings.forEach((pairing, idx) => {
-                const p1Email = pairing.p1 ? pairing.p1.email : 'Unknown';
-                const p2Email = pairing.p2 ? pairing.p2.email : '-';
+                const p1Nickname = pairing.p1 ? pairing.p1.nickname : 'Unknown';
+                const p2Nickname = pairing.p2 ? pairing.p2.nickname : '-';
                 const isResting = !pairing.p2;
                 
                 if (isResting) {
                     html += `<tr class="resting">
                         <td>${idx + 1}</td>
-                        <td><strong>${p1Email}</strong></td>
+                        <td><strong>${p1Nickname}</strong></td>
                         <td><span class="badge">RESTING</span></td>
                         <td><span class="status-badge status-assigned">${pairing.status || 'assigned'}</span></td>
                     </tr>`;
                 } else {
                     html += `<tr>
                         <td>${idx + 1}</td>
-                        <td><strong>${p1Email}</strong></td>
-                        <td><strong>${p2Email}</strong></td>
+                        <td><strong>${p1Nickname}</strong></td>
+                        <td><strong>${p2Nickname}</strong></td>
                         <td><span class="status-badge status-assigned">${pairing.status || 'assigned'}</span></td>
                     </tr>`;
                 }

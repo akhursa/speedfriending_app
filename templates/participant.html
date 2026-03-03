@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Speed Friending - {{ safe_email }}</title>
+    <title>Speed Friending - {{ safe_nickname }}</title>
     <style>
         * {
             margin: 0;
@@ -103,7 +103,7 @@
             margin-bottom: 10px;
         }
         
-        .partner-email {
+        .partner-nickname {
             font-size: 24px;
             font-weight: bold;
             color: #333;
@@ -291,25 +291,16 @@
         
         <!-- BREAK PHASE: Next Partner Preview -->
         <div id="break-phase-section" style="display: none;">
-            <div id="question-display-break" class="question-card" style="display: none;">
-                <div class="question-label">🎯 Next Round's Question</div>
-                <div id="question-text-break" class="question-text">Loading question...</div>
+            <div id="break-next-partner-section" style="display: none;">
+                <div class="partner-section">
+                    <div class="partner-label">Your Next Partner</div>
+                    <div id="break-partner-display" class="no-partner-yet">Loading next pairing...</div>
+                </div>
             </div>
             
-            <div class="partner-section">
-                <div class="partner-label">Your Next Partner</div>
-                <div id="break-partner-display" class="no-partner-yet">Loading next pairing...</div>
-            </div>
-            
-            <div class="action-buttons">
-                <button id="mark-met-break-btn" class="btn-primary" onclick="markMetDuringBreak()" style="opacity: 0.6;">
-                    ✓ Mark Previous as Met
-                </button>
-            </div>
-            
-            <div class="info-box">
+            <div class="info-box" id="break-info-box">
                 <strong>Break Time!</strong><br>
-                Get ready to meet your next partner. You can still mark your previous meeting as completed here.
+                Relax and recharge!
             </div>
         </div>
         
@@ -341,7 +332,7 @@
     </div>
     <script>
         const JOIN_CODE = '{{ join_code }}';
-        const USER_EMAIL = '{{ safe_email }}';
+        const USER_NICKNAME = '{{ safe_nickname }}';
         const API_BASE = '/events/' + JOIN_CODE;
         
         let currentData = null;
@@ -355,7 +346,7 @@
                 await autoAdvancePhase();
                 
                 // Then load match data
-                const response = await fetch(API_BASE + '/my_match?email=' + encodeURIComponent(USER_EMAIL));
+                const response = await fetch(API_BASE + '/my_match?nickname=' + encodeURIComponent(USER_NICKNAME));
                 const data = await response.json();
                 updateUI(data);
                 
@@ -383,7 +374,6 @@
             
             // Hide all question displays
             if (questionDisplayTalk) questionDisplayTalk.style.display = 'none';
-            if (questionDisplayBreak) questionDisplayBreak.style.display = 'none';
             if (questionDisplayLobby) questionDisplayLobby.style.display = 'none';
             
             if (data.status === 'success') {
@@ -391,9 +381,6 @@
                 if (phase === 'talk' && questionDisplayTalk) {
                     document.getElementById('question-text-talk').textContent = data.question;
                     questionDisplayTalk.style.display = 'block';
-                } else if (phase === 'break' && questionDisplayBreak) {
-                    document.getElementById('question-text-break').textContent = data.question;
-                    questionDisplayBreak.style.display = 'block';
                 }
             }
         }
@@ -437,7 +424,7 @@
                     talkPartnerDisplay.innerHTML = '<span class="no-partner-yet">Resting this round<br>(You\'ll meet next round!)</span>';
                     metBtn.style.display = 'none';
                 } else if (status === 'paired') {
-                    talkPartnerDisplay.textContent = data.partner.email;
+                    talkPartnerDisplay.textContent = data.partner.nickname;
                     metBtn.style.display = 'block';
                 } else {
                     talkPartnerDisplay.innerHTML = '<span class="no-partner-yet">Loading partner...</span>';
@@ -445,16 +432,17 @@
                 }
             } else if (phase === 'break') {
                 document.getElementById('break-phase-section').style.display = 'block';
-                const breakPartnerDisplay = document.getElementById('break-partner-display');
                 
                 if (status === 'next_partner_preview') {
-                    breakPartnerDisplay.textContent = data.next_partner.email;
+                    document.getElementById('break-next-partner-section').style.display = 'block';
+                    document.getElementById('break-partner-display').textContent = data.next_partner.nickname;
+                    document.getElementById('break-info-box').innerHTML = '<strong>Break Time!</strong><br>Get ready to meet your next partner!';
                 } else if (status === 'resting') {
-                    breakPartnerDisplay.innerHTML = '<span class="no-partner-yet">You\'re resting next round 😌</span>';
-                } else if (status === 'waiting_for_pairing') {
-                    breakPartnerDisplay.innerHTML = '<span class="no-partner-yet">Pairings being generated...</span>';
+                    document.getElementById('break-next-partner-section').style.display = 'none';
+                    document.getElementById('break-info-box').innerHTML = '<strong>Break Time!</strong><br>You\'re resting next round. Relax and recharge!';
                 } else {
-                    breakPartnerDisplay.innerHTML = '<span class="no-partner-yet">Loading next partner...</span>';
+                    document.getElementById('break-next-partner-section').style.display = 'none';
+                    document.getElementById('break-info-box').innerHTML = '<strong>Break Time!</strong><br>Relax and recharge!';
                 }
             } else {
                 document.getElementById('lobby-phase-section').style.display = 'block';
@@ -528,7 +516,7 @@
                 const response = await fetch(API_BASE + '/mark_met', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({email: USER_EMAIL})
+                    body: JSON.stringify({nickname: USER_NICKNAME})
                 });
                 
                 const result = await response.json();
@@ -558,7 +546,7 @@
                 const response = await fetch(API_BASE + '/mark_met', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({email: USER_EMAIL})
+                    body: JSON.stringify({nickname: USER_NICKNAME})
                 });
                 
                 const result = await response.json();

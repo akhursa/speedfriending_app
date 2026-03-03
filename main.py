@@ -3,12 +3,12 @@ from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel
+from typing import Optional
 from sqlmodel import Session, select
 import secrets
 import string
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,7 +16,7 @@ load_dotenv()
 from config import config
 from db import create_db_and_tables, get_session
 from models import Event, Participant, Round, Pairing, PairHistory, Question
-from validators import validate_email, validate_join_code, validate_event_title, validate_questions_batch
+from validators import validate_nickname, validate_join_code, validate_event_title, validate_questions_batch
 
 
 app = FastAPI(
@@ -64,13 +64,14 @@ class EventResponse(BaseModel):
     status: str
 
 class JoinRequest(BaseModel):
-    email: str
+    nickname: str
+    email: Optional[str] = None
 
 class QuestionsUploadRequest(BaseModel):
     questions: list[str]
 
 class MarkMetRequest(BaseModel):
-    email: str
+    nickname: str
 
 def generate_join_code(n: int = 6) -> str:
     alphabet = string.ascii_uppercase + string.digits
@@ -117,7 +118,7 @@ def create_event(payload: EventCreate, session: Session = Depends(get_session)):
 @app.get("/join", response_class=HTMLResponse)
 def join_page(code: str = None):
     """
-    Join event page where participants can enter their email and join code.
+    Join event page where participants can enter their nickname and join code.
     The code can be provided as a query parameter for direct joining.
     """
     template = jinja_env.get_template("join.html")
@@ -205,12 +206,12 @@ def join_event(
     if not code_valid:
         raise HTTPException(status_code=400, detail=code_error)
     
-    email_valid, email_error = validate_email(payload.email)
-    if not email_valid:
-        raise HTTPException(status_code=400, detail=email_error)
+    nickname_valid, nickname_error = validate_nickname(payload.nickname)
+    if not nickname_valid:
+        raise HTTPException(status_code=400, detail=nickname_error)
     
-    # Normalize email to lowercase
-    normalized_email = payload.email.strip().lower()
+    # Normalize nickname to lowercase
+    normalized_nickname = payload.nickname.strip().lower()
     
     event = session.exec(select(Event).where(Event.join_code == join_code)).first()
     if not event:
@@ -218,16 +219,20 @@ def join_event(
     existing = session.exec(
         select(Participant).where(
             Participant.event_id == event.id,
-            Participant.email == normalized_email,
+            Participant.nickname == normalized_nickname,
         )
     ).first()
     if existing:
         raise HTTPException(
             status_code=400,
-            detail="Participant with this email already joined the event",
+            detail="Participant with this nickname already joined the event",
         )
 
-    participant = Participant(event_id=event.id, email=normalized_email)
+    participant = Participant(
+        event_id=event.id,
+        nickname=normalized_nickname,
+        email=payload.email
+    )
     session.add(participant)
     session.commit()
     session.refresh(participant)
@@ -245,10 +250,8 @@ def list_participants(join_code: str, session: Session = Depends(get_session)):
     return {"event_id": event.id, "join_code": join_code, "participants": participants}
 
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-
-from sqlmodel import select
 from sqlalchemy import insert as sa_insert
 
 
@@ -348,7 +351,6 @@ def make_pairs(
     return pairs
 
 
-from datetime import datetime
 from zoneinfo import ZoneInfo
 
 MINSK_TZ = ZoneInfo("Europe/Minsk")
@@ -430,17 +432,17 @@ def start_round(join_code: str, session: Session = Depends(get_session)):
 
 
 @app.get("/events/{join_code}/my_match")
-def my_match(join_code: str, email: str, session: Session = Depends(get_session)):
+def my_match(join_code: str, nickname: str, session: Session = Depends(get_session)):
     event = session.exec(select(Event).where(Event.join_code == join_code)).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    # Normalize email
-    normalized_email = email.strip().lower()
+    # Normalize nickname
+    normalized_nickname = nickname.strip().lower()
     
     participant = session.exec(
         select(Participant).where(
-            Participant.event_id == event.id, Participant.email == normalized_email
+            Participant.event_id == event.id, Participant.nickname == normalized_nickname
         )
     ).first()
     if not participant:
@@ -484,7 +486,7 @@ def my_match(join_code: str, email: str, session: Session = Depends(get_session)
             "current_round": current_round,
             "partner": {
                 "id": partner.id,
-                "email": partner.email,
+                "nickname": partner.nickname,
             },
         }
     
@@ -522,7 +524,7 @@ def my_match(join_code: str, email: str, session: Session = Depends(get_session)
             "next_round": next_round,
             "next_partner": {
                 "id": partner.id,
-                "email": partner.email,
+                "nickname": partner.nickname,
             },
         }
     
@@ -887,8 +889,8 @@ def dashboard(join_code: str, session: Session = Depends(get_session)):
             
             pairings.append({
                 "id": pairing.id,
-                "p1": {"id": p1.id, "email": p1.email} if p1 else None,
-                "p2": {"id": p2.id, "email": p2.email} if p2 else None,
+                "p1": {"id": p1.id, "nickname": p1.nickname} if p1 else None,
+                "p2": {"id": p2.id, "nickname": p2.nickname} if p2 else None,
                 "status": pairing.status,
             })
 
@@ -912,7 +914,7 @@ def dashboard(join_code: str, session: Session = Depends(get_session)):
             "seconds_left": seconds_left,
         },
         "participants": [
-            {"id": p.id, "email": p.email}
+            {"id": p.id, "nickname": p.nickname}
             for p in participants
         ],
         "pairings": pairings,
@@ -920,7 +922,7 @@ def dashboard(join_code: str, session: Session = Depends(get_session)):
 
 
 @app.get("/events/{join_code}/participant_view", response_class=HTMLResponse)
-def participant_view(join_code: str, email: str, session: Session = Depends(get_session)):
+def participant_view(join_code: str, nickname: str, session: Session = Depends(get_session)):
     """
     Participant view showing current partner and round status.
     Returns the participant.html template.
@@ -929,22 +931,22 @@ def participant_view(join_code: str, email: str, session: Session = Depends(get_
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
-    # Normalize email
-    normalized_email = email.strip().lower()
+    # Normalize nickname
+    normalized_nickname = nickname.strip().lower()
     
     participant = session.exec(
         select(Participant).where(
-            Participant.event_id == event.id, Participant.email == normalized_email
+            Participant.event_id == event.id, Participant.nickname == normalized_nickname
         )
     ).first()
     if not participant:
         raise HTTPException(status_code=404, detail="Participant not found")
 
-    # Sanitize email for safe use in HTML
-    safe_email = normalized_email.replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
+    # Sanitize nickname for safe use in HTML
+    safe_nickname = normalized_nickname.replace('"', "&quot;").replace("<", "&lt;").replace(">", "&gt;")
 
     template = jinja_env.get_template("participant.html")
-    return template.render(join_code=join_code, safe_email=safe_email)
+    return template.render(join_code=join_code, safe_nickname=safe_nickname)
 
 
 @app.post("/events/{join_code}/mark_met")
@@ -968,12 +970,12 @@ def mark_met(
             detail=f"Can only mark as met during talk phase. Current phase: {current_phase}"
         )
 
-    # Normalize email
-    normalized_email = payload.email.strip().lower()
+    # Normalize nickname
+    normalized_nickname = payload.nickname.strip().lower()
     
     participant = session.exec(
         select(Participant).where(
-            Participant.event_id == event.id, Participant.email == normalized_email
+            Participant.event_id == event.id, Participant.nickname == normalized_nickname
         )
     ).first()
     if not participant:
@@ -1060,7 +1062,7 @@ def upload_questions(
 @app.get("/events/{join_code}/current_question")
 def get_current_question(join_code: str, session: Session = Depends(get_session)):
     """
-    Get the question for the current round.
+    Get the question for the current round or next round (during break).
     Returns: {"round": 1, "question": "What's your favorite hobby?"}
     or {"status": "no_question"} if round not started or no question for this round
     """
@@ -1072,24 +1074,28 @@ def get_current_question(join_code: str, session: Session = Depends(get_session)
     if current_round <= 0:
         return {"status": "no_question", "message": "Event not started yet"}
     
-    # Query Question where event_id=event.id AND round_number=current_round
+    # During break, show next round's question
+    target_round = current_round
+    if getattr(event, 'phase', 'talk') == 'break':
+        target_round = current_round + 1
+    
     question = session.exec(
         select(Question).where(
             Question.event_id == event.id,
-            Question.round_number == current_round,
+            Question.round_number == target_round,
         )
     ).first()
     
     if not question:
         return {
             "status": "no_question",
-            "round": current_round,
+            "round": target_round,
             "message": "No question for this round"
         }
     
     return {
         "status": "success",
-        "round": current_round,
+        "round": target_round,
         "question": question.text
     }
 

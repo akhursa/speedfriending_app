@@ -78,7 +78,7 @@
         }
 
         input[type="text"],
-        input[type="email"] {
+        input[type="nickname"] {
             padding: 14px 16px;
             border: 2px solid #e0e0e0;
             border-radius: 8px;
@@ -88,12 +88,12 @@
         }
 
         input[type="text"]::placeholder,
-        input[type="email"]::placeholder {
+        input[type="nickname"]::placeholder {
             color: #bbb;
         }
 
         input[type="text"]:focus,
-        input[type="email"]:focus {
+        input[type="nickname"]:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -275,14 +275,14 @@
             </div>
 
             <div class="form-group">
-                <label for="email">Email Address</label>
+                <label for="nickname">Nickname</label>
                 <input 
-                    type="email" 
-                    id="email" 
-                    name="email" 
-                    placeholder="you@example.com"
+                    type="nickname" 
+                    id="nickname" 
+                    name="nickname" 
+                    placeholder="SunnySun"
                     required
-                    autocomplete="email"
+                    autocomplete="nickname"
                 >
                 <div class="form-note">We'll use this to match you with other participants</div>
             </div>
@@ -294,9 +294,6 @@
             </button>
         </form>
 
-        <div class="back-link">
-            <a href="/">← Create a New Event</a>
-        </div>
     </div>
 
     <script>
@@ -320,9 +317,9 @@
             alertBox.classList.remove('show');
         }
 
-        function validateEmail(email) {
-            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            return re.test(email);
+        function validateNickname(nickname) {
+            const re = /^[a-zA-Z0-9_]{3,20}$/;
+            return re.test(nickname);
         }
 
         function validateJoinCode(code) {
@@ -334,7 +331,7 @@
             clearAlert();
 
             const joinCode = document.getElementById('joinCode').value.trim().toUpperCase();
-            const email = document.getElementById('email').value.trim();
+            const nickname = document.getElementById('nickname').value.trim();
 
             // Validation
             if (!validateJoinCode(joinCode)) {
@@ -343,15 +340,15 @@
                 return;
             }
 
-            if (!validateEmail(email)) {
-                showAlert('Please enter a valid email address', 'error');
-                document.getElementById('email').classList.add('error');
+            if (!validateNickname(nickname)) {
+                showAlert('Please enter a valid nickname (5-20 characters, alphanumeric and underscore only)', 'error');
+                document.getElementById('nickname').classList.add('error');
                 return;
             }
 
             // Remove error styling
             document.getElementById('joinCode').classList.remove('error');
-            document.getElementById('email').classList.remove('error');
+            document.getElementById('nickname').classList.remove('error');
 
             const btn = document.getElementById('joinBtn');
             const btnText = document.getElementById('btnText');
@@ -375,7 +372,7 @@
                 const joinResponse = await fetch(`${API_BASE}/events/${joinCode}/join`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email })
+                    body: JSON.stringify({ nickname })
                 });
 
                 if (!joinResponse.ok) {
@@ -385,13 +382,13 @@
 
                 const participantData = await joinResponse.json();
 
-                // Success! Store the email and redirect
-                sessionStorage.setItem('current_email', email);
+                // Success! Store the nickname and redirect
+                sessionStorage.setItem('current_nickname', nickname);
                 sessionStorage.setItem('current_join_code', joinCode);
 
                 // Redirect to participant view after a brief delay
                 setTimeout(() => {
-                    window.location.href = `/events/${joinCode}/participant_view?email=${encodeURIComponent(email)}`;
+                    window.location.href = `/events/${joinCode}/participant_view?nickname=${encodeURIComponent(nickname)}`;
                 }, 800);
 
             } catch (error) {
@@ -406,7 +403,7 @@
             this.classList.remove('error');
         });
 
-        document.getElementById('email').addEventListener('input', function() {
+        document.getElementById('nickname').addEventListener('input', function() {
             this.classList.remove('error');
         });
     </script>

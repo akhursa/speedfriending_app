@@ -22,11 +22,9 @@ class Event(SQLModel, table=True):
 class Participant(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     event_id: int = Field(index=True, foreign_key="event.id")
-    email: str = Field(index=True)
+    nickname: str = Field(index=True)
+    email: Optional[str] = Field(default=None)
     joined_at: datetime = Field(default_factory=lambda: datetime.now(Minsk_tz))
-
-
-from datetime import timedelta
 
 
 class Round(SQLModel, table=True):

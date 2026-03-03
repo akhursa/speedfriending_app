@@ -4,24 +4,22 @@ Validation utilities for the speed friending app
 import re
 from typing import Tuple
 
-def validate_email(email: str) -> Tuple[bool, str]:
+
+def validate_nickname(nickname: str) -> Tuple[bool, str]:
     """
-    Validate email format.
     Returns (is_valid, error_message)
     """
-    email = email.strip()
+    nickname = nickname.strip()
     
-    if not email:
-        return False, "Email is required"
+    if not nickname:
+        return False, "Nickname is required"
     
-    if len(email) > 254:
-        return False, "Email is too long (max 254 characters)"
-    
-    # Basic email regex pattern
-    pattern = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
-    if not re.match(pattern, email):
-        return False, "Invalid email format"
-    
+    if len(nickname) < 5:
+        return False, "Nickname must be at least 5 characters long"
+        
+    if len(nickname) > 50:
+        return False, "Nickname must be no more than 50 characters long"
+        
     return True, ""
 
 
