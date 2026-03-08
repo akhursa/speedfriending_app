@@ -251,6 +251,137 @@
             color: #2e7d32;
             margin-bottom: 15px;
         }
+
+        .photo-section {
+            display: none;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .photo-section.active {
+            display: block;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        .camera-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #f5f5f5;
+            border: 3px dashed #ccc;
+        }
+
+        .camera-container.has-photo {
+            border-style: solid;
+            border-color: #667eea;
+        }
+
+        #videoElement {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #photoCanvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #999;
+        }
+
+        .photo-placeholder-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        .camera-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-camera {
+            background: #667eea;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-camera:hover {
+            background: #5a6fd6;
+            transform: translateY(-2px);
+        }
+
+        .btn-camera:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #eee;
+            border-color: #ccc;
+        }
+
+        .btn-skip {
+            background: transparent;
+            color: #999;
+            border: none;
+            text-decoration: underline;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 10px;
+        }
+
+        .btn-skip:hover {
+            color: #666;
+        }
+
+        .photo-note {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 15px;
+        }
+
+        .upload-status {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        .upload-status.success {
+            color: #2e7d32;
+        }
+
+        .upload-status.error {
+            color: #c62828;
+        }
     </style>
 </head>
 
@@ -286,12 +417,48 @@
             </button>
         </form>
 
+        <div class="photo-section" id="photoSection">
+            <div class="header">
+                <h2>Take a Selfie</h2>
+                <p>Add a photo so others can recognize you</p>
+            </div>
+            
+            <div class="photo-note">This is optional - you can skip if you prefer</div>
+            
+            <div class="camera-container" id="cameraContainer">
+                <video id="videoElement" autoplay playsinline></video>
+                <canvas id="photoCanvas" style="display: none;"></canvas>
+                <div class="photo-placeholder" id="photoPlaceholder">
+                    <div class="photo-placeholder-icon">📷</div>
+                    <span>No photo yet</span>
+                </div>
+            </div>
+
+            <div class="camera-controls" id="cameraControls">
+                <button type="button" class="btn-camera" id="startCameraBtn">📷 Take Photo</button>
+            </div>
+            
+            <div class="camera-controls" id="retakeControls" style="display: none;">
+                <button type="button" class="btn-camera btn-secondary" id="retakeBtn">🔄 Retake</button>
+                <button type="button" class="btn-camera" id="usePhotoBtn">✓ Use This Photo</button>
+            </div>
+
+            <div class="upload-status" id="uploadStatus"></div>
+
+            <button type="button" class="btn-skip" id="skipPhotoBtn">Skip for now</button>
+        </div>
+
     </div>
 
     <script>
         const API_BASE = window.location.origin;
         const urlParams = new URLSearchParams(window.location.search);
         const codeFromUrl = urlParams.get('code');
+
+        let currentJoinCode = '';
+        let currentNickname = '';
+        let stream = null;
+        let capturedPhoto = null;
 
         // Pre-fill join code if provided in URL
         if (codeFromUrl) {
@@ -316,6 +483,117 @@
 
         function validateJoinCode(code) {
             return code.trim().length >= 4 && code.trim().length <= 10;
+        }
+
+        // Camera functions
+        async function startCamera() {
+            const video = document.getElementById('videoElement');
+            const container = document.getElementById('cameraContainer');
+            
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } 
+                });
+                video.srcObject = stream;
+                video.style.display = 'block';
+                document.getElementById('photoPlaceholder').style.display = 'none';
+                document.getElementById('photoCanvas').style.display = 'none';
+                container.classList.add('has-photo');
+                
+                document.getElementById('cameraControls').style.display = 'none';
+                document.getElementById('retakeControls').style.display = 'flex';
+            } catch (err) {
+                console.error('Error accessing camera:', err);
+                showAlert('Could not access camera. Please allow camera permissions or skip this step.', 'error');
+            }
+        }
+
+        function capturePhoto() {
+            const video = document.getElementById('videoElement');
+            const canvas = document.getElementById('photoCanvas');
+            const container = document.getElementById('cameraContainer');
+            
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.transform(-1, 0, 0, 1, canvas.width, 0);
+            ctx.drawImage(video, 0, 0);
+            
+            capturedPhoto = canvas.toDataURL('image/jpeg', 0.8);
+            
+            video.style.display = 'none';
+            canvas.style.display = 'block';
+            
+            stopCamera();
+            
+            document.getElementById('cameraControls').style.display = 'none';
+            document.getElementById('retakeControls').style.display = 'flex';
+        }
+
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+            }
+        }
+
+        function retakePhoto() {
+            capturedPhoto = null;
+            document.getElementById('photoCanvas').style.display = 'none';
+            document.getElementById('videoElement').style.display = 'block';
+            document.getElementById('cameraControls').style.display = 'flex';
+            document.getElementById('retakeControls').style.display = 'none';
+            document.getElementById('uploadStatus').textContent = '';
+            startCamera();
+        }
+
+        async function uploadPhoto() {
+            if (!capturedPhoto) return false;
+            
+            const uploadStatus = document.getElementById('uploadStatus');
+            uploadStatus.textContent = 'Uploading photo...';
+            uploadStatus.className = 'upload-status';
+            
+            try {
+                const base64Data = capturedPhoto.split(',')[1];
+                const blob = await fetch(`data:image/jpeg;base64,${base64Data}`).then(r => r.blob());
+                
+                const formData = new FormData();
+                formData.append('photo', blob, 'selfie.jpg');
+                
+                const response = await fetch(
+                    `${API_BASE}/events/${currentJoinCode}/upload_photo?nickname=${encodeURIComponent(currentNickname)}`,
+                    {
+                        method: 'POST',
+                        body: formData
+                    }
+                );
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to upload photo');
+                }
+                
+                uploadStatus.textContent = 'Photo uploaded!';
+                uploadStatus.className = 'upload-status success';
+                return true;
+            } catch (err) {
+                console.error('Upload error:', err);
+                uploadStatus.textContent = 'Failed to upload photo. You can continue without it.';
+                uploadStatus.className = 'upload-status error';
+                return false;
+            }
+        }
+
+        async function proceedToEvent() {
+            if (capturedPhoto) {
+                await uploadPhoto();
+            }
+            
+            setTimeout(() => {
+                window.location.href = `/events/${currentJoinCode}/participant_view?nickname=${encodeURIComponent(currentNickname)}`;
+            }, 500);
         }
 
         document.getElementById('joinForm').addEventListener('submit', async (e) => {
@@ -374,20 +652,39 @@
 
                 const participantData = await joinResponse.json();
 
-                // Success! Store the nickname and redirect
+                // Store for later use
+                currentJoinCode = joinCode;
+                currentNickname = nickname;
                 sessionStorage.setItem('current_nickname', nickname);
                 sessionStorage.setItem('current_join_code', joinCode);
 
-                // Redirect to participant view after a brief delay
+                // Hide join form and show photo section
+                document.getElementById('joinForm').style.display = 'none';
+                document.getElementById('photoSection').classList.add('active');
+                
+                // Auto-start camera
                 setTimeout(() => {
-                    window.location.href = `/events/${joinCode}/participant_view?nickname=${encodeURIComponent(nickname)}`;
-                }, 800);
+                    startCamera();
+                }, 500);
 
             } catch (error) {
                 showAlert(error.message || 'Failed to join event. Please try again.', 'error');
                 btn.disabled = false;
                 btnText.textContent = originalText;
             }
+        });
+
+        // Camera button handlers
+        document.getElementById('startCameraBtn').addEventListener('click', startCamera);
+        document.getElementById('retakeBtn').addEventListener('click', retakePhoto);
+        document.getElementById('usePhotoBtn').addEventListener('click', capturePhoto);
+        document.getElementById('skipPhotoBtn').addEventListener('click', () => {
+            stopCamera();
+            proceedToEvent();
+        });
+        document.getElementById('usePhotoBtn').addEventListener('click', () => {
+            stopCamera();
+            proceedToEvent();
         });
 
         // Clear error styling on input
@@ -397,6 +694,11 @@
 
         document.getElementById('nickname').addEventListener('input', function () {
             this.classList.remove('error');
+        });
+
+        // Cleanup on page leave
+        window.addEventListener('beforeunload', () => {
+            stopCamera();
         });
     </script>
 </body>

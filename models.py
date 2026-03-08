@@ -24,6 +24,8 @@ class Participant(SQLModel, table=True):
     event_id: int = Field(index=True, foreign_key="event.id")
     nickname: str = Field(index=True)
     email: Optional[str] = Field(default=None)
+    photo_filename: Optional[str] = Field(default=None)
+    photo_uploaded_at: Optional[datetime] = Field(default=None)
     joined_at: datetime = Field(default_factory=lambda: datetime.now(Minsk_tz))
 
 

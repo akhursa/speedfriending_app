@@ -1,7 +1,8 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 from sqlmodel import Session, select
@@ -10,6 +11,7 @@ import string
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from dotenv import load_dotenv
+from datetime import datetime, timedelta
 
 load_dotenv()
 
@@ -22,6 +24,7 @@ from validators import (
     validate_event_title,
     validate_questions_batch,
 )
+from services.photo import photo_service
 
 
 app = FastAPI(
@@ -29,6 +32,11 @@ app = FastAPI(
     description="Real-time speed dating event management platform",
     version="1.0.0",
 )
+
+# Serve static files for uploaded photos
+static_dir = Path(config.PHOTO_UPLOAD_DIR)
+static_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Add CORS middleware
 app.add_middleware(
@@ -246,7 +254,16 @@ def join_event(
     session.add(participant)
     session.commit()
     session.refresh(participant)
-    return participant
+    return {
+        "id": participant.id,
+        "event_id": participant.event_id,
+        "nickname": participant.nickname,
+        "email": participant.email,
+        "photo_filename": participant.photo_filename,
+        "photo_uploaded_at": participant.photo_uploaded_at,
+        "joined_at": participant.joined_at,
+        "photo_url": None,
+    }
 
 
 @app.get("/events/{join_code}/participants")
@@ -257,10 +274,78 @@ def list_participants(join_code: str, session: Session = Depends(get_session)):
     participants = session.exec(
         select(Participant).where(Participant.event_id == event.id)
     ).all()
-    return {"event_id": event.id, "join_code": join_code, "participants": participants}
+    return {
+        "event_id": event.id,
+        "join_code": join_code,
+        "participants": [
+            {
+                "id": p.id,
+                "nickname": p.nickname,
+                "email": p.email,
+                "photo_filename": p.photo_filename,
+                "photo_url": photo_service.get_photo_url(p.photo_filename),
+                "joined_at": p.joined_at,
+            }
+            for p in participants
+        ],
+    }
 
 
-from datetime import datetime, timedelta
+@app.post("/events/{join_code}/upload_photo")
+async def upload_photo(
+    join_code: str,
+    nickname: str,
+    photo: UploadFile = File(...),
+    session: Session = Depends(get_session),
+):
+    event = session.exec(select(Event).where(Event.join_code == join_code)).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    normalized_nickname = nickname.strip().lower()
+    participant = session.exec(
+        select(Participant).where(
+            Participant.event_id == event.id,
+            Participant.nickname == normalized_nickname,
+        )
+    ).first()
+    if not participant:
+        raise HTTPException(
+            status_code=404, detail="Participant not found in this event"
+        )
+
+    if not photo.content_type or not photo.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="Only image files are allowed")
+
+    contents = await photo.read()
+
+    is_valid, error_msg = photo_service.validate_photo(
+        contents, config.PHOTO_MAX_SIZE_MB
+    )
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_msg)
+
+    extension = "jpg"
+    if photo.content_type == "image/png":
+        extension = "png"
+    elif photo.content_type == "image/jpeg":
+        extension = "jpg"
+
+    if participant.photo_filename:
+        photo_service.delete_photo(participant.photo_filename)
+
+    filename = photo_service.save_photo(contents, extension)
+    participant.photo_filename = filename
+    participant.photo_uploaded_at = datetime.now()
+    session.add(participant)
+    session.commit()
+    session.refresh(participant)
+
+    return {
+        "success": True,
+        "photo_url": photo_service.get_photo_url(filename),
+    }
+
 
 from sqlalchemy import insert as sa_insert
 
@@ -270,29 +355,21 @@ def make_pairs(
 ):
     import random
 
-    # все прошлые встречи в рамках события
     rows = session.exec(
         select(PairHistory.a_id, PairHistory.b_id).where(
             PairHistory.event_id == event_id
         )
     ).all()
 
-    # нормализуем пары: (min,max), чтобы (2,5) == (5,2)
     met = {(min(a, b), max(a, b)) for (a, b) in rows}
 
     ids = participant_ids[:]
     random.shuffle(ids)
 
-    pairs = []
-    used = set()
-
-    # If odd number of participants, pick who should rest this round
-    # (the one who has rested the least so far, for fair rotation)
     rest_person = None
     if len(ids) % 2 == 1:
         rest_counts = {}
         for pid in participant_ids:
-            # Count how many times this participant has rested (appeared with p2_id=None)
             rest_count = len(
                 session.exec(
                     select(Pairing).where(
@@ -304,61 +381,62 @@ def make_pairs(
             )
             rest_counts[pid] = rest_count
 
-        # Pick the participant with the least rests.
-        # For ties, rotate fairly using round_number and sorted order (by pid).
         min_rest = min(rest_counts.values())
         candidates = sorted(
             [pid for pid in participant_ids if rest_counts[pid] == min_rest]
         )
-        # Use round_number to deterministically rotate among tied candidates
         rest_person = candidates[(round_number - 1) % len(candidates)]
+
+        ids = [pid for pid in ids if pid != rest_person]
+
+    pairs = []
+    used = set()
 
     for p in ids:
         if p in used:
             continue
 
-        # If this is the designated rest person, rest this round
-        if p == rest_person:
-            pairs.append((p, None))
-            used.add(p)
-            continue
-
         partner = None
-        for c in ids:
-            if c == p or c in used or c == rest_person:
+        for candidate in ids:
+            if candidate in used:
                 continue
-
-            key = (min(p, c), max(p, c))
+            if candidate == p:
+                continue
+            key = (min(p, candidate), max(p, candidate))
             if key not in met:
-                partner = c
+                partner = candidate
+                break
+
+        if partner is None:
+            for candidate in ids:
+                if candidate in used or candidate == p:
+                    continue
+                partner = candidate
                 break
 
         used.add(p)
-
         if partner is not None:
             used.add(partner)
             pairs.append((p, partner))
-
-            a = min(p, partner)
-            b = max(p, partner)
-
-            # Try to insert pairhistory in a DB-safe way. For SQLite use INSERT OR IGNORE
+            a, b = min(p, partner), max(p, partner)
             stmt = sa_insert(PairHistory.__table__).values(
                 event_id=event_id, a_id=a, b_id=b, round_number=round_number
             )
-            # SQLite supports OR IGNORE
             try:
                 stmt = stmt.prefix_with("OR IGNORE")
             except Exception:
                 pass
-
             session.exec(stmt)
-            met.add((a, b))  # чтобы в рамках одного раунда тоже не повторить
+            met.add((a, b))
         else:
-            # This should not happen if rest_person is correctly identified
             pairs.append((p, None))
 
-    # Flush to ensure PairHistory inserts are persisted
+    if rest_person is not None:
+        pairs.append((rest_person, None))
+
+    session.flush()
+    return pairs
+
     session.flush()
     return pairs
 
@@ -397,7 +475,7 @@ def start_round(join_code: str, session: Session = Depends(get_session)):
     event.status = "running"
 
     started_at = datetime.now(MINSK_TZ)
-    ends_at = started_at + timedelta(minutes=8)
+    ends_at = started_at + timedelta(minutes=config.TALK_DURATION_MINUTES)
 
     event.phase = "talk"
     event.phase_ends_at = ends_at
@@ -512,6 +590,7 @@ def my_match(join_code: str, nickname: str, session: Session = Depends(get_sessi
             "partner": {
                 "id": partner.id,
                 "nickname": partner.nickname,
+                "photo_url": photo_service.get_photo_url(partner.photo_filename),
             },
         }
 
@@ -567,6 +646,7 @@ def my_match(join_code: str, nickname: str, session: Session = Depends(get_sessi
             "next_partner": {
                 "id": partner.id,
                 "nickname": partner.nickname,
+                "photo_url": photo_service.get_photo_url(partner.photo_filename),
             },
         }
 
@@ -724,7 +804,7 @@ def auto_advance(join_code: str, session: Session = Depends(get_session)):
 
         new_round_number = int(event.current_round or 0) + 1
         started_at = datetime.now(MINSK_TZ)
-        ends_at = started_at + timedelta(minutes=8)
+        ends_at = started_at + timedelta(minutes=5)
 
         session.add(
             Round(
@@ -861,7 +941,7 @@ def next_round(join_code: str, session: Session = Depends(get_session)):
     new_round_number = int(event.current_round or 0) + 1
 
     started_at = datetime.now(MINSK_TZ)
-    ends_at = started_at + timedelta(minutes=8)
+    ends_at = started_at + timedelta(minutes=config.TALK_DURATION_MINUTES)
 
     # создаём запись round
     session.add(
@@ -914,11 +994,12 @@ def dashboard(join_code: str, session: Session = Depends(get_session)):
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
+    current_round = int(event.current_round or 0)
     participants = session.exec(
         select(Participant).where(Participant.event_id == event.id)
     ).all()
 
-    current_round = int(event.current_round or 0)
+    participant_map = {p.id: p for p in participants}
     pairings = []
 
     if current_round > 0:
@@ -930,16 +1011,8 @@ def dashboard(join_code: str, session: Session = Depends(get_session)):
         ).all()
 
         for pairing in pairings_data:
-            p1 = session.exec(
-                select(Participant).where(Participant.id == pairing.p1_id)
-            ).first()
-            p2 = (
-                session.exec(
-                    select(Participant).where(Participant.id == pairing.p2_id)
-                ).first()
-                if pairing.p2_id
-                else None
-            )
+            p1 = participant_map.get(pairing.p1_id)
+            p2 = participant_map.get(pairing.p2_id) if pairing.p2_id else None
 
             pairings.append(
                 {

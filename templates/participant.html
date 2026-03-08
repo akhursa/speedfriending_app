@@ -259,6 +259,55 @@
             font-size: 14px;
             color: #0c5460;
         }
+
+        .partner-photo {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 15px auto;
+            border: 4px solid #667eea;
+            display: block;
+        }
+
+        .partner-photo-placeholder {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            margin: 15px auto;
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            border: 4px dashed #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+        }
+
+        .my-profile-section {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        .my-profile-photo {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #667eea;
+        }
+
+        .my-profile-placeholder {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+            border: 2px solid #667eea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
     </style>
 </head>
 
@@ -282,7 +331,9 @@
 
             <div class="partner-section">
                 <div class="partner-label">Your Current Partner</div>
-                <div id="talk-partner-display" class="no-partner-yet">Waiting...</div>
+                <div id="talk-partner-photo" class="partner-photo-placeholder">👤</div>
+                <img id="talk-partner-photo-img" class="partner-photo" style="display: none;" alt="Partner photo">
+                <div id="talk-partner-display" class="partner-nickname">Waiting...</div>
             </div>
 
             <div class="action-buttons">
@@ -297,7 +348,9 @@
             <div id="break-next-partner-section" style="display: none;">
                 <div class="partner-section">
                     <div class="partner-label">Your Next Partner</div>
-                    <div id="break-partner-display" class="no-partner-yet">Loading next pairing...</div>
+                    <div id="break-partner-photo" class="partner-photo-placeholder">👤</div>
+                    <img id="break-partner-photo-img" class="partner-photo" style="display: none;" alt="Partner photo">
+                    <div id="break-partner-display" class="partner-nickname">Loading next pairing...</div>
                 </div>
             </div>
 
@@ -329,6 +382,8 @@
         <div class="modal-content">
             <h2>🎉 Round Finished!</h2>
             <p>Get ready for the next pairing:</p>
+            <div id="modal-partner-photo" class="partner-photo-placeholder" style="margin: 15px auto;">👤</div>
+            <img id="modal-partner-photo-img" class="partner-photo" style="display: none; margin: 15px auto;" alt="Partner photo">
             <div class="next-partner" id="next-partner-info">-</div>
             <button class="btn-primary" onclick="closeRoundModal()">Continue</button>
         </div>
@@ -342,6 +397,46 @@
         let lastRound = 0;
         let lastPhase = 'lobby';
         let timerInterval = null;
+
+        // Bell sound using Web Audio API
+        let audioEnabled = false;
+        
+        function playBellSound() {
+            if (!audioEnabled) return;
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Create a pleasant chime/bell sound
+                const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5 chord
+                
+                frequencies.forEach((freq, i) => {
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    
+                    oscillator.frequency.value = freq;
+                    oscillator.type = 'sine';
+                    
+                    // Bell-like envelope
+                    const now = audioCtx.currentTime;
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.3, now + 0.02);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+                    
+                    oscillator.start(now + i * 0.1);
+                    oscillator.stop(now + 1.5 + i * 0.1);
+                });
+            } catch (e) {
+                console.log('Audio not available:', e);
+            }
+        }
+
+        // Enable audio on first user interaction
+        document.addEventListener('click', function() {
+            audioEnabled = true;
+        }, { once: true });
 
         async function loadData() {
             try {
@@ -406,6 +501,11 @@
             const status = data.status || 'waiting';
             const phase = data.phase || 'lobby';
 
+            // Play bell sound when transitioning from talk to break
+            if (lastPhase === 'talk' && phase === 'break') {
+                playBellSound();
+            }
+
             lastRound = currentRound;
             lastPhase = phase;
 
@@ -421,13 +521,25 @@
             if (phase === 'talk') {
                 document.getElementById('talk-phase-section').style.display = 'block';
                 const talkPartnerDisplay = document.getElementById('talk-partner-display');
+                const talkPartnerPhoto = document.getElementById('talk-partner-photo');
+                const talkPartnerPhotoImg = document.getElementById('talk-partner-photo-img');
                 const metBtn = document.getElementById('met-btn');
+
+                // Reset photo display
+                talkPartnerPhoto.style.display = 'flex';
+                talkPartnerPhotoImg.style.display = 'none';
 
                 if (status === 'no_pair' || status === 'resting') {
                     talkPartnerDisplay.innerHTML = '<span class="no-partner-yet">Resting this round<br>(You\'ll meet next round!)</span>';
+                    talkPartnerPhoto.style.display = 'none';
                     metBtn.style.display = 'none';
-                } else if (status === 'paired') {
+                } else if (status === 'paired' && data.partner) {
                     talkPartnerDisplay.textContent = data.partner.nickname;
+                    if (data.partner.photo_url) {
+                        talkPartnerPhotoImg.src = data.partner.photo_url;
+                        talkPartnerPhotoImg.style.display = 'block';
+                        talkPartnerPhoto.style.display = 'none';
+                    }
                     metBtn.style.display = 'block';
                 } else {
                     talkPartnerDisplay.innerHTML = '<span class="no-partner-yet">Loading partner...</span>';
@@ -436,9 +548,20 @@
             } else if (phase === 'break') {
                 document.getElementById('break-phase-section').style.display = 'block';
 
+                // Reset photo display
+                const breakPartnerPhoto = document.getElementById('break-partner-photo');
+                const breakPartnerPhotoImg = document.getElementById('break-partner-photo-img');
+                breakPartnerPhoto.style.display = 'flex';
+                breakPartnerPhotoImg.style.display = 'none';
+
                 if (status === 'next_partner_preview') {
                     document.getElementById('break-next-partner-section').style.display = 'block';
                     document.getElementById('break-partner-display').textContent = data.next_partner.nickname;
+                    if (data.next_partner.photo_url) {
+                        breakPartnerPhotoImg.src = data.next_partner.photo_url;
+                        breakPartnerPhotoImg.style.display = 'block';
+                        breakPartnerPhoto.style.display = 'none';
+                    }
                     document.getElementById('break-info-box').innerHTML = '<strong>Break Time!</strong><br>Get ready to meet your next partner!';
                 } else if (status === 'resting') {
                     document.getElementById('break-next-partner-section').style.display = 'none';
