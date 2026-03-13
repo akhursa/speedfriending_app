@@ -68,3 +68,12 @@ Thumbs.db
 pip-log.txt
 pip-delete-this-directory.txt
 
+# Windows device name artifact
+nul
+
+# Uploaded user photos (runtime data, not source code)
+static/uploads/
+
+# Cursor IDE
+.cursor/
+

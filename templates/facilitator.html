@@ -156,6 +156,17 @@
             box-shadow: 0 5px 15px rgba(118, 75, 162, 0.4);
         }
 
+        .btn-danger {
+            background: #c82901;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #a32200;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(200, 41, 1, 0.4);
+        }
+
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -175,6 +186,22 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+        }
+
+        .participant-item .delete-btn {
+            background: none;
+            border: none;
+            color: #999;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .participant-item .delete-btn:hover {
+            background: #ffebee;
+            color: #c62828;
         }
 
         .participant-nickname {
@@ -369,6 +396,7 @@
                 <div class="controls">
                     <button id="start-btn" class="btn-primary" onclick="startRound()">Start Round</button>
                     <button id="next-btn" class="btn-secondary" onclick="nextRound()">Next Round</button>
+                    <button id="end-btn" class="btn-danger" onclick="endEvent()">End Event</button>
                 </div>
 
                 <h2>Participants (total: <span id="list-count">0</span>)</h2>
@@ -395,24 +423,77 @@
         const JOIN_CODE = '{{ join_code }}';
         const API_BASE = '/events/' + JOIN_CODE;
 
-        // Check if facilitator is authenticated
+        function getPin() {
+            return sessionStorage.getItem(`facil_${JOIN_CODE}`);
+        }
+
+        function withPin(url) {
+            const pin = getPin();
+            if (!pin) return url;
+            const sep = url.includes('?') ? '&' : '?';
+            return url + sep + 'pin=' + encodeURIComponent(pin);
+        }
+
         function checkFacilitatorAuth() {
-            const storedPin = sessionStorage.getItem(`facil_${JOIN_CODE}`);
-            if (!storedPin) {
-                // Not authenticated, redirect to login
+            if (!getPin()) {
                 window.location.href = '/facilitator/login';
             }
         }
 
-        // Run auth check on page load
         checkFacilitatorAuth();
 
         let currentData = null;
         let timerInterval = null;
+        let lastPhase = 'lobby';
+
+        // Bell sound using Web Audio API
+        let audioEnabled = false;
+        
+        function playBellSound() {
+            if (!audioEnabled) return;
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // Create a pleasant chime/bell sound
+                const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5 chord
+                
+                frequencies.forEach((freq, i) => {
+                    const oscillator = audioCtx.createOscillator();
+                    const gainNode = audioCtx.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioCtx.destination);
+                    
+                    oscillator.frequency.value = freq;
+                    oscillator.type = 'sine';
+                    
+                    // Bell-like envelope
+                    const now = audioCtx.currentTime;
+                    gainNode.gain.setValueAtTime(0, now);
+                    gainNode.gain.linearRampToValueAtTime(0.3, now + 0.02);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
+                    
+                    oscillator.start(now + i * 0.1);
+                    oscillator.stop(now + 1.5 + i * 0.1);
+                });
+            } catch (e) {
+                console.log('Audio not available:', e);
+            }
+        }
+
+        // Enable audio on first user interaction
+        document.addEventListener('click', function() {
+            audioEnabled = true;
+        }, { once: true });
 
         async function loadDashboard() {
             try {
-                const response = await fetch(API_BASE + '/dashboard');
+                const response = await fetch(withPin(API_BASE + '/dashboard'));
+                if (response.status === 403) {
+                    alert('Invalid facilitator PIN. Please log in again.');
+                    window.location.href = '/facilitator/login';
+                    return;
+                }
                 const data = await response.json();
                 currentData = data;
                 updateUI(data);
@@ -427,6 +508,12 @@
             const event = data.event;
             const participants = data.participants;
             const pairings = data.pairings;
+
+            // Play bell sound when transitioning from talk to break
+            if (lastPhase === 'talk' && event.phase === 'break') {
+                playBellSound();
+            }
+            lastPhase = event.phase;
 
             // Update header
             document.getElementById('current-round').textContent = event.current_round || '-';
@@ -489,6 +576,11 @@
             }, 1000);
         }
 
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return String(text).replace(/[&<>"']/g, m => map[m]);
+        }
+
         function updateParticipantsList(participants) {
             const listEl = document.getElementById('participants-list');
             document.getElementById('list-count').textContent = participants.length;
@@ -500,9 +592,44 @@
 
             listEl.innerHTML = participants.map(p => `
                 <li class="participant-item">
-                    <span class="participant-nickname">${p.nickname}</span>
+                    <span class="participant-nickname">${escapeHtml(p.nickname)}</span>
+                    <button class="delete-btn" data-nickname="${escapeHtml(p.nickname)}" title="Remove participant">🗑️</button>
                 </li>
             `).join('');
+        }
+
+        document.getElementById('participants-list').addEventListener('click', function(e) {
+            const btn = e.target.closest('.delete-btn');
+            if (btn) deleteParticipant(btn.dataset.nickname);
+        });
+
+        async function deleteParticipant(nickname) {
+            if (!confirm(`Remove "${nickname}" from this event? This cannot be undone.`)) {
+                return;
+            }
+
+            const pin = sessionStorage.getItem(`facil_${JOIN_CODE}`);
+            if (!pin) {
+                alert('Facilitator PIN not found. Please log in again.');
+                window.location.href = '/facilitator/login';
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                    `/events/${JOIN_CODE}/participants/${encodeURIComponent(nickname)}?pin=${encodeURIComponent(pin)}`,
+                    { method: 'DELETE' }
+                );
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to delete participant');
+                }
+
+                loadDashboard();
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
         }
 
         function updatePairingsTable(pairings) {
@@ -516,8 +643,9 @@
             let html = '<table class="pairings-table"><thead><tr><th>#</th><th>Participant 1</th><th>Participant 2</th><th>Status</th></tr></thead><tbody>';
 
             pairings.forEach((pairing, idx) => {
-                const p1Nickname = pairing.p1 ? pairing.p1.nickname : 'Unknown';
-                const p2Nickname = pairing.p2 ? pairing.p2.nickname : '-';
+                const p1Nickname = escapeHtml(pairing.p1 ? pairing.p1.nickname : 'Unknown');
+                const p2Nickname = escapeHtml(pairing.p2 ? pairing.p2.nickname : '-');
+                const status = escapeHtml(pairing.status || 'assigned');
                 const isResting = !pairing.p2;
 
                 if (isResting) {
@@ -525,14 +653,14 @@
                         <td>${idx + 1}</td>
                         <td><strong>${p1Nickname}</strong></td>
                         <td><span class="badge">RESTING</span></td>
-                        <td><span class="status-badge status-assigned">${pairing.status || 'assigned'}</span></td>
+                        <td><span class="status-badge status-assigned">${status}</span></td>
                     </tr>`;
                 } else {
                     html += `<tr>
                         <td>${idx + 1}</td>
                         <td><strong>${p1Nickname}</strong></td>
                         <td><strong>${p2Nickname}</strong></td>
-                        <td><span class="status-badge status-assigned">${pairing.status || 'assigned'}</span></td>
+                        <td><span class="status-badge status-assigned">${status}</span></td>
                     </tr>`;
                 }
             });
@@ -549,7 +677,7 @@
             startBtn.disabled = true;
 
             try {
-                const response = await fetch(API_BASE + '/start_round', { method: 'POST' });
+                const response = await fetch(withPin(API_BASE + '/start_round'), { method: 'POST' });
                 const data = await response.json();
 
                 if (!response.ok) {
@@ -572,7 +700,7 @@
             nextBtn.disabled = true;
 
             try {
-                const response = await fetch(API_BASE + '/next_round', { method: 'POST' });
+                const response = await fetch(withPin(API_BASE + '/next_round'), { method: 'POST' });
                 const data = await response.json();
 
                 if (!response.ok) {
@@ -589,6 +717,22 @@
             } catch (error) {
                 alert('Error advancing round: ' + error.message);
                 nextBtn.disabled = false;
+            }
+        }
+
+        async function endEvent() {
+            if (!confirm('End the event? Participants will see the thank-you screen. This cannot be undone.')) return;
+            const endBtn = document.getElementById('end-btn');
+            endBtn.disabled = true;
+            try {
+                const response = await fetch(withPin(API_BASE + '/end_event'), { method: 'POST' });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || 'Unknown error');
+                alert('Event ended!');
+                loadDashboard();
+            } catch (error) {
+                alert('Error ending event: ' + error.message);
+                endBtn.disabled = false;
             }
         }
 
@@ -610,7 +754,7 @@
             btn.disabled = true;
 
             try {
-                const response = await fetch(API_BASE + '/upload_questions', {
+                const response = await fetch(withPin(API_BASE + '/upload_questions'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ questions: questions })
@@ -648,7 +792,7 @@
                     preview.className = 'status-loading';
                 } else {
                     list.innerHTML = data.questions
-                        .map((q, i) => `<li>${q.text}</li>`)
+                        .map((q, i) => `<li>${escapeHtml(q.text)}</li>`)
                         .join('');
                     preview.className = '';
                 }

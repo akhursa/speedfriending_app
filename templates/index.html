@@ -502,35 +502,38 @@
             }
 
             container.innerHTML = events.map(event => {
-                const joinLink = `${API_BASE}/?join=${event.join_code}`;
-                const participantLink = `${API_BASE}/join?code=${event.join_code}`;
+                const safeCode = escapeHtml(event.join_code);
+                const safePin = escapeHtml(event.facilitator_pin);
+                const safeStatus = escapeHtml(event.status);
+                const participantLink = `${API_BASE}/join?code=${encodeURIComponent(event.join_code)}`;
+                const safeParticipantLink = escapeHtml(participantLink);
 
                 return `
                     <div class="event-item">
                         <div class="event-header">
                             <div class="event-title">${escapeHtml(event.title)}</div>
-                            <div class="event-code">${event.join_code}</div>
+                            <div class="event-code">${safeCode}</div>
                         </div>
                         <div class="event-meta">
                             <span>📅 Created: ${new Date(event.created_at).toLocaleDateString()}</span>
-                            <span>Status: <strong>${event.status}</strong></span>
+                            <span>Status: <strong>${safeStatus}</strong></span>
                         </div>
                         <div class="event-actions">
-                            <button class="btn-small btn-facilitator" onclick="goToFacilitator('${event.join_code}', '${event.facilitator_pin}')">
+                            <button class="btn-small btn-facilitator" data-code="${safeCode}" data-pin="${safePin}">
                                 📊 Facilitator Dashboard
                             </button>
-                            <button class="btn-small btn-copy" onclick="copyToClipboard('${participantLink}', this)">
+                            <button class="btn-small btn-copy" data-copy="${safeParticipantLink}">
                                 📋 Copy Participant Link
                             </button>
                         </div>
-                        <div class="participant-link-box" id="link-${event.join_code}">
+                        <div class="participant-link-box" id="link-${safeCode}">
                             <div class="participant-link-label">Share this link with participants:</div>
-                            <div class="participant-link">${participantLink}</div>
+                            <div class="participant-link">${safeParticipantLink}</div>
                         </div>
                         <div class="participant-link-box show" style="border-color: #ffc107; background: #fffbea; margin-top: 12px;">
                             <div class="participant-link-label" style="color: #f57f17;">🔑 Facilitator PIN (keep secret!):</div>
-                            <div class="participant-link" style="background: #fff9c4; color: #f57f17; font-weight: bold; letter-spacing: 2px; font-size: 16px;">${event.facilitator_pin}</div>
-                            <button class="btn-small btn-copy" onclick="copyToClipboard('${event.facilitator_pin}', this)" style="margin-top: 8px;">
+                            <div class="participant-link" style="background: #fff9c4; color: #f57f17; font-weight: bold; letter-spacing: 2px; font-size: 16px;">${safePin}</div>
+                            <button class="btn-small btn-copy" data-copy="${safePin}" style="margin-top: 8px;">
                                 📋 Copy PIN
                             </button>
                         </div>
@@ -540,10 +543,9 @@
         }
 
         function goToFacilitator(joinCode, facilPin) {
-            // Store PIN in session and redirect
             sessionStorage.setItem(`facil_${joinCode}`, facilPin);
             sessionStorage.setItem('facil_join_code', joinCode);
-            window.location.href = `/events/${joinCode}/facilitator`;
+            window.location.href = `/events/${encodeURIComponent(joinCode)}/facilitator`;
         }
 
         function copyToClipboard(text, btn) {
@@ -559,6 +561,18 @@
                 showAlert('Failed to copy to clipboard', 'error');
             });
         }
+
+        document.getElementById('eventsList').addEventListener('click', function(e) {
+            const facilitatorBtn = e.target.closest('.btn-facilitator');
+            if (facilitatorBtn) {
+                goToFacilitator(facilitatorBtn.dataset.code, facilitatorBtn.dataset.pin);
+                return;
+            }
+            const copyBtn = e.target.closest('.btn-copy');
+            if (copyBtn && copyBtn.dataset.copy) {
+                copyToClipboard(copyBtn.dataset.copy, copyBtn);
+            }
+        });
 
         function escapeHtml(text) {
             const map = {

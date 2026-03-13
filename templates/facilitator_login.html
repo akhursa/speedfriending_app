@@ -303,21 +303,24 @@
             btnText.innerHTML = '<div class="loading"></div>Verifying...';
 
             try {
-                // Try to access the event to verify it exists
-                const checkResponse = await fetch(`${API_BASE}/events/${joinCode}/state`);
-                
+                const checkResponse = await fetch(
+                    `${API_BASE}/events/${joinCode}/verify_facilitator?pin=${encodeURIComponent(facilPIN)}`,
+                    { method: 'POST' }
+                );
+
                 if (!checkResponse.ok) {
                     if (checkResponse.status === 404) {
                         throw new Error('Event not found. Please check the event code.');
                     }
-                    throw new Error('Failed to verify event');
+                    if (checkResponse.status === 403) {
+                        throw new Error('Invalid PIN. Please check your facilitator PIN.');
+                    }
+                    throw new Error('Failed to verify credentials');
                 }
 
-                // Store facilitator session
                 sessionStorage.setItem(`facil_${joinCode}`, facilPIN);
                 sessionStorage.setItem('facil_join_code', joinCode);
 
-                // Redirect to facilitator dashboard
                 setTimeout(() => {
                     window.location.href = `/events/${joinCode}/facilitator`;
                 }, 500);

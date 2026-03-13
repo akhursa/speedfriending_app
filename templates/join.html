@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Join Speed Friending Event</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,255 +16,241 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Albert Sans', -apple-system, sans-serif;
+            background: #ffffff;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 40px 20px;
+            position: relative;
+            overflow-x: hidden;
         }
 
-        .container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 450px;
+        /* Decorative orange circle — top-left corner, partially visible.
+           left = body-padding(20px) + Figma-x(39px) = 59px on mobile.
+           On wider viewports content is centered: 50vw - (375/2) + 39 = 50vw - 148.5px */
+        .deco-circle {
+            position: fixed;
+            top: -36px;
+            left: max(59px, calc(50vw - 148.5px));
+            width: 100px;
+            height: 100px;
+            background: #FF9A00;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .page-wrapper {
+            position: relative;
             width: 100%;
-            padding: 40px;
-            animation: slideIn 0.4s ease-out;
+            max-width: 375px;
+            z-index: 1;
         }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        /* People icon centered, overlapping card top */
+        .logo-mark {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 10;
         }
 
-        .header {
+        .logo-mark img {
+            width: 56px;
+            height: auto;
+        }
+
+        /* Main card */
+        .card {
+            background: white;
+            border: 1px solid #c82901;
+            border-radius: 31px;
+            padding: 48px 28px 40px;
+            position: relative;
+        }
+
+        .card-title {
+            font-size: 36px;
+            font-weight: 600;
+            color: rgba(0, 0, 0, 0.7);
             text-align: center;
-            margin-bottom: 35px;
+            margin-bottom: 10px;
+            line-height: 1.2;
         }
 
-        .logo {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-
-        .header h1 {
-            font-size: 28px;
-            color: #333;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            color: #666;
-            font-size: 15px;
+        .card-subtitle {
+            font-size: 13px;
+            font-weight: 400;
+            color: rgba(0, 0, 0, 0.6);
+            text-align: center;
+            margin-bottom: 28px;
             line-height: 1.5;
         }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
+        /* Alerts */
+        .alert {
+            display: none;
+            padding: 12px 16px;
+            border-radius: 10px;
             margin-bottom: 20px;
-        }
-
-        label {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
             font-size: 14px;
         }
 
-        input[type="text"],
-        input[type="nickname"] {
-            padding: 14px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            font-family: inherit;
+        .alert.show { display: block; }
+
+        .alert-error {
+            background: #fff0ee;
+            color: #c82901;
+            border-left: 3px solid #c82901;
         }
 
-        input[type="text"]::placeholder,
-        input[type="nickname"]::placeholder {
-            color: #bbb;
+        .alert-info {
+            background: #fff5e6;
+            color: #c05000;
+            border-left: 3px solid #ff9a00;
         }
 
-        input[type="text"]:focus,
-        input[type="nickname"]:focus {
+        /* Form */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        input[type="text"] {
+            display: block;
+            width: 100%;
+            height: 57px;
+            padding: 0 20px;
+            border: 0.5px solid #c82901;
+            border-radius: 30px;
+            font-family: 'Albert Sans', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            color: rgba(0, 0, 0, 0.7);
+            background: white;
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transition: border-width 0.15s ease;
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(0, 0, 0, 0.25);
+            font-weight: 600;
+        }
+
+        input[type="text"]:focus {
+            border-width: 1.5px;
+        }
+
+        input[type="text"].error {
+            border-color: #c82901;
+            border-width: 1.5px;
+            background: #fff8f7;
         }
 
         .form-note {
             font-size: 12px;
-            color: #999;
-            margin-top: 6px;
+            font-weight: 400;
+            color: rgba(0, 0, 0, 0.6);
+            margin-top: 8px;
+            padding-left: 12px;
         }
 
-        button {
-            padding: 14px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: inherit;
-        }
-
+        /* Primary button */
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 239px;
+            height: 57px;
+            margin: 24px auto 0;
+            background: linear-gradient(90deg, #ff9a00 0%, #c82901 100%);
+            border: none;
+            border-radius: 184px;
+            font-family: 'Albert Sans', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
             color: white;
-            width: 100%;
-            margin-top: 10px;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
         }
 
         .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+            opacity: 0.92;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(200, 41, 1, 0.3);
         }
 
         .btn-primary:active:not(:disabled) {
             transform: translateY(0);
+            box-shadow: none;
         }
 
         .btn-primary:disabled {
-            opacity: 0.6;
+            opacity: 0.55;
             cursor: not-allowed;
-            transform: none;
         }
 
-        .alert {
-            padding: 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            display: none;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .alert.show {
-            display: block;
-        }
-
-        .alert-error {
-            background: #ffebee;
-            color: #c62828;
-            border-left: 4px solid #c62828;
-        }
-
-        .alert-info {
-            background: #e3f2fd;
-            color: #1565c0;
-            border-left: 4px solid #1565c0;
-        }
-
-        .divider {
-            height: 1px;
-            background: #e0e0e0;
-            margin: 25px 0;
-            position: relative;
-        }
-
-        .divider::after {
-            content: "or";
-            position: absolute;
-            top: -12px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: white;
-            padding: 0 8px;
-            color: #999;
-            font-size: 12px;
-            font-weight: 500;
-        }
-
-        .back-link {
-            display: inline-block;
-            text-align: center;
-            width: 100%;
-            margin-top: 20px;
-            font-size: 14px;
-        }
-
-        .back-link a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.3s ease;
-        }
-
-        .back-link a:hover {
-            color: #764ba2;
-            text-decoration: underline;
-        }
-
+        /* Loading spinner */
         .loading {
             display: inline-block;
             width: 18px;
             height: 18px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(255, 255, 255, 0.4);
             border-radius: 50%;
             border-top-color: white;
             animation: spin 0.8s linear infinite;
             margin-right: 8px;
+            vertical-align: middle;
         }
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
         }
 
-        .btn-content {
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: rgba(200, 41, 1, 0.15);
+            margin: 28px 0;
         }
 
-        input.error {
-            border-color: #c62828;
-            background-color: #ffebee;
-        }
-
-        .highlight {
-            background: #fff3cd;
-            border-left: 4px solid #ff9800;
-            padding: 12px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            font-size: 13px;
-            color: #666;
-        }
-
-        .highlight strong {
-            color: #333;
-        }
-
-        .success-message {
-            text-align: center;
-            color: #2e7d32;
-            margin-bottom: 15px;
-        }
-
+        /* Photo / camera section */
         .photo-section {
             display: none;
-            margin-top: 25px;
-            padding-top: 25px;
-            border-top: 1px solid #e0e0e0;
         }
 
         .photo-section.active {
             display: block;
-            animation: slideIn 0.4s ease-out;
+            animation: fadeUp 0.4s ease-out;
+        }
+
+        .photo-section-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .photo-section-header h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: rgba(0, 0, 0, 0.7);
+            margin-bottom: 6px;
+        }
+
+        .photo-section-header p {
+            font-size: 13px;
+            color: rgba(0, 0, 0, 0.5);
+        }
+
+        .photo-note {
+            text-align: center;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.4);
+            margin-bottom: 18px;
         }
 
         .camera-container {
@@ -271,26 +260,17 @@
             margin: 0 auto 20px;
             border-radius: 50%;
             overflow: hidden;
-            background: #f5f5f5;
-            border: 3px dashed #ccc;
+            background: #fff5e6;
+            border: 3px dashed rgba(200, 41, 1, 0.3);
         }
 
         .camera-container.has-photo {
             border-style: solid;
-            border-color: #667eea;
+            border-color: #c82901;
         }
 
-        #videoElement {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        #photoCanvas {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
+        #videoElement { width: 100%; height: 100%; object-fit: cover; }
+        #photoCanvas  { width: 100%; height: 100%; object-fit: cover; }
 
         .photo-placeholder {
             width: 100%;
@@ -299,155 +279,144 @@
             align-items: center;
             justify-content: center;
             flex-direction: column;
-            color: #999;
+            color: rgba(0, 0, 0, 0.3);
+            gap: 8px;
         }
 
-        .photo-placeholder-icon {
-            font-size: 48px;
-            margin-bottom: 10px;
-        }
+        .photo-placeholder-icon { font-size: 40px; }
+        .photo-placeholder span  { font-size: 13px; }
 
         .camera-controls {
             display: flex;
             gap: 10px;
             justify-content: center;
             flex-wrap: wrap;
+            margin-bottom: 10px;
         }
 
         .btn-camera {
-            background: #667eea;
+            background: linear-gradient(90deg, #ff9a00, #c82901);
             color: white;
-            padding: 10px 20px;
+            padding: 10px 22px;
             border: none;
-            border-radius: 8px;
+            border-radius: 50px;
+            font-family: 'Albert Sans', sans-serif;
             font-size: 14px;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: opacity 0.2s;
         }
 
-        .btn-camera:hover {
-            background: #5a6fd6;
-            transform: translateY(-2px);
+        .btn-camera:hover:not(:disabled) { opacity: 0.88; }
+        .btn-camera:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-camera.btn-secondary {
+            background: white;
+            color: #c82901;
+            border: 1.5px solid #c82901;
         }
 
-        .btn-camera:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-secondary {
-            background: #f5f5f5;
-            color: #666;
-            border: 2px solid #e0e0e0;
-        }
-
-        .btn-secondary:hover {
-            background: #eee;
-            border-color: #ccc;
-        }
+        .btn-camera.btn-secondary:hover { background: #fff5e6; }
 
         .btn-skip {
+            display: block;
             background: transparent;
-            color: #999;
+            color: rgba(0, 0, 0, 0.45);
             border: none;
             text-decoration: underline;
+            font-family: 'Albert Sans', sans-serif;
             font-size: 14px;
+            font-weight: 400;
             cursor: pointer;
-            padding: 10px;
+            margin: 8px auto 0;
+            padding: 8px 16px;
         }
 
-        .btn-skip:hover {
-            color: #666;
-        }
-
-        .photo-note {
-            text-align: center;
-            font-size: 12px;
-            color: #999;
-            margin-bottom: 15px;
-        }
+        .btn-skip:hover { color: rgba(0, 0, 0, 0.65); }
 
         .upload-status {
             text-align: center;
-            margin-top: 10px;
+            margin-top: 8px;
             font-size: 13px;
+            min-height: 20px;
         }
 
-        .upload-status.success {
-            color: #2e7d32;
-        }
-
-        .upload-status.error {
-            color: #c62828;
-        }
+        .upload-status.success { color: #2a7a32; }
+        .upload-status.error   { color: #c82901; }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">🤝</div>
-            <h1>Join Event</h1>
-            <p>Enter your details to join the speed friending event</p>
+
+    <!-- Decorative orange circle blob (top-left, partially clipped) -->
+    <div class="deco-circle"></div>
+
+    <div class="page-wrapper">
+
+        <!-- People icon centered above the card -->
+        <div class="logo-mark">
+            <img src="/static/images/logo.svg" alt="Speed Friending">
         </div>
 
-        <div id="alertBox" class="alert"></div>
+        <!-- Main card -->
+        <div class="card">
+            <h1 class="card-title">Join Event</h1>
+            <p class="card-subtitle">Enter your details to join the Speed Friending event</p>
 
-        <form id="joinForm">
-            <div class="form-group">
-                <label for="joinCode">Event Code</label>
-                <input type="text" id="joinCode" name="join_code" placeholder="e.g., ABC123" maxlength="10" required
-                    autocomplete="off">
-                <div class="form-note">You should have received this from the facilitator</div>
-            </div>
+            <div id="alertBox" class="alert"></div>
 
-            <div class="form-group">
-                <label for="nickname">Nickname</label>
-                <input type="nickname" id="nickname" name="nickname" placeholder="SunnySun" required
-                    autocomplete="nickname">
-                <div class="form-note">We'll use this to match you with other participants</div>
-            </div>
+            <form id="joinForm">
+                <div class="form-group">
+                    <input type="text" id="joinCode" name="join_code"
+                           placeholder="Event code" maxlength="10" required autocomplete="off">
+                    <div class="form-note">You should have received it from your facilitator</div>
+                </div>
 
-            <button type="submit" class="btn-primary" id="joinBtn">
-                <div class="btn-content">
+                <div class="form-group">
+                    <input type="text" id="nickname" name="nickname"
+                           placeholder="Your Nickname" required autocomplete="off">
+                    <div class="form-note">We'll use it to match you with other participants</div>
+                </div>
+
+                <button type="submit" class="btn-primary" id="joinBtn">
                     <span id="btnText">Join Event</span>
+                </button>
+            </form>
+
+            <!-- Photo section — shown after successful join -->
+            <div class="photo-section" id="photoSection">
+                <div class="divider"></div>
+
+                <div class="photo-section-header">
+                    <h2>Take a Selfie</h2>
+                    <p>Add a photo so others can recognize you</p>
                 </div>
-            </button>
-        </form>
 
-        <div class="photo-section" id="photoSection">
-            <div class="header">
-                <h2>Take a Selfie</h2>
-                <p>Add a photo so others can recognize you</p>
-            </div>
-            
-            <div class="photo-note">This is optional - you can skip if you prefer</div>
-            
-            <div class="camera-container" id="cameraContainer">
-                <video id="videoElement" autoplay playsinline></video>
-                <canvas id="photoCanvas" style="display: none;"></canvas>
-                <div class="photo-placeholder" id="photoPlaceholder">
-                    <div class="photo-placeholder-icon">📷</div>
-                    <span>No photo yet</span>
+                <div class="photo-note">Optional — you can skip if you prefer</div>
+
+                <div class="camera-container" id="cameraContainer">
+                    <video id="videoElement" autoplay playsinline style="display: none;"></video>
+                    <canvas id="photoCanvas" style="display: none;"></canvas>
+                    <div class="photo-placeholder" id="photoPlaceholder">
+                        <div class="photo-placeholder-icon">📷</div>
+                        <span>No photo yet</span>
+                    </div>
                 </div>
-            </div>
 
-            <div class="camera-controls" id="cameraControls">
-                <button type="button" class="btn-camera" id="startCameraBtn">📷 Take Photo</button>
-            </div>
-            
-            <div class="camera-controls" id="retakeControls" style="display: none;">
-                <button type="button" class="btn-camera btn-secondary" id="retakeBtn">🔄 Retake</button>
-                <button type="button" class="btn-camera" id="usePhotoBtn">✓ Use This Photo</button>
-            </div>
+                <div class="camera-controls" id="cameraControls">
+                    <button type="button" class="btn-camera" id="startCameraBtn">📷 Take Photo</button>
+                </div>
 
-            <div class="upload-status" id="uploadStatus"></div>
+                <div class="camera-controls" id="retakeControls" style="display: none;">
+                    <button type="button" class="btn-camera btn-secondary" id="retakeBtn">↺ Retake</button>
+                    <button type="button" class="btn-camera" id="usePhotoBtn">✓ Use This Photo</button>
+                </div>
 
-            <button type="button" class="btn-skip" id="skipPhotoBtn">Skip for now</button>
+                <div class="upload-status" id="uploadStatus"></div>
+
+                <button type="button" class="btn-skip" id="skipPhotoBtn">Skip for now</button>
+            </div>
         </div>
-
     </div>
 
     <script>
@@ -460,10 +429,46 @@
         let stream = null;
         let capturedPhoto = null;
 
-        // Pre-fill join code if provided in URL
-        if (codeFromUrl) {
-            document.getElementById('joinCode').value = codeFromUrl.toUpperCase();
+        // Auto-redirect if user has a saved session
+        async function checkSavedSession() {
+            const saved = localStorage.getItem('speedfriending_participant');
+            if (saved) {
+                try {
+                    const { nickname, joinCode } = JSON.parse(saved);
+                    if (nickname && joinCode) {
+                        document.body.innerHTML = `
+                            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                                        height:100vh;background:#fff;font-family:'Albert Sans',sans-serif;color:rgba(0,0,0,0.6);">
+                                <img src="/static/images/logo-circle.svg" style="width:80px;margin-bottom:24px;" alt="">
+                                <div style="font-size:18px;font-weight:600;color:rgba(0,0,0,0.7);">Returning to your session…</div>
+                            </div>`;
+                        try {
+                            const response = await fetch(`${API_BASE}/events/${joinCode}/state`);
+                            if (response.ok) {
+                                const state = await response.json();
+                                if (state.phase === 'ended' || state.status === 'ended') {
+                                    localStorage.removeItem('speedfriending_participant');
+                                } else {
+                                    window.location.href = `/events/${joinCode}/participant_view?nickname=${encodeURIComponent(nickname)}`;
+                                    return true;
+                                }
+                            }
+                        } catch (e) {
+                            localStorage.removeItem('speedfriending_participant');
+                        }
+                    }
+                } catch (e) {
+                    localStorage.removeItem('speedfriending_participant');
+                }
+            }
+            return false;
         }
+
+        checkSavedSession().then(shouldSkip => {
+            if (codeFromUrl) {
+                document.getElementById('joinCode').value = codeFromUrl.toUpperCase();
+            }
+        });
 
         function showAlert(message, type = 'error') {
             const alertBox = document.getElementById('alertBox');
@@ -472,13 +477,11 @@
         }
 
         function clearAlert() {
-            const alertBox = document.getElementById('alertBox');
-            alertBox.classList.remove('show');
+            document.getElementById('alertBox').classList.remove('show');
         }
 
         function validateNickname(nickname) {
-            const re = /^[a-zA-Z0-9_]{3,20}$/;
-            return re.test(nickname);
+            return /^[a-zA-Z0-9_]{3,20}$/.test(nickname);
         }
 
         function validateJoinCode(code) {
@@ -489,108 +492,82 @@
         async function startCamera() {
             const video = document.getElementById('videoElement');
             const container = document.getElementById('cameraContainer');
-            
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } } 
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
                 });
                 video.srcObject = stream;
                 video.style.display = 'block';
                 document.getElementById('photoPlaceholder').style.display = 'none';
                 document.getElementById('photoCanvas').style.display = 'none';
                 container.classList.add('has-photo');
-                
                 document.getElementById('cameraControls').style.display = 'none';
                 document.getElementById('retakeControls').style.display = 'flex';
             } catch (err) {
-                console.error('Error accessing camera:', err);
                 showAlert('Could not access camera. Please allow camera permissions or skip this step.', 'error');
             }
         }
 
         function capturePhoto() {
-            const video = document.getElementById('videoElement');
+            const video  = document.getElementById('videoElement');
             const canvas = document.getElementById('photoCanvas');
-            const container = document.getElementById('cameraContainer');
-            
-            canvas.width = video.videoWidth;
+            canvas.width  = video.videoWidth;
             canvas.height = video.videoHeight;
-            
             const ctx = canvas.getContext('2d');
             ctx.transform(-1, 0, 0, 1, canvas.width, 0);
             ctx.drawImage(video, 0, 0);
-            
             capturedPhoto = canvas.toDataURL('image/jpeg', 0.8);
-            
-            video.style.display = 'none';
+            video.style.display  = 'none';
             canvas.style.display = 'block';
-            
             stopCamera();
-            
-            document.getElementById('cameraControls').style.display = 'none';
-            document.getElementById('retakeControls').style.display = 'flex';
+            document.getElementById('cameraControls').style.display  = 'none';
+            document.getElementById('retakeControls').style.display  = 'flex';
         }
 
         function stopCamera() {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                stream = null;
-            }
+            if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
         }
 
         function retakePhoto() {
             capturedPhoto = null;
-            document.getElementById('photoCanvas').style.display = 'none';
-            document.getElementById('videoElement').style.display = 'block';
+            document.getElementById('photoCanvas').style.display   = 'none';
+            document.getElementById('videoElement').style.display  = 'block';
             document.getElementById('cameraControls').style.display = 'flex';
             document.getElementById('retakeControls').style.display = 'none';
-            document.getElementById('uploadStatus').textContent = '';
+            document.getElementById('uploadStatus').textContent    = '';
             startCamera();
         }
 
         async function uploadPhoto() {
             if (!capturedPhoto) return false;
-            
             const uploadStatus = document.getElementById('uploadStatus');
-            uploadStatus.textContent = 'Uploading photo...';
-            uploadStatus.className = 'upload-status';
-            
+            uploadStatus.textContent = 'Uploading photo…';
+            uploadStatus.className   = 'upload-status';
             try {
                 const base64Data = capturedPhoto.split(',')[1];
                 const blob = await fetch(`data:image/jpeg;base64,${base64Data}`).then(r => r.blob());
-                
                 const formData = new FormData();
                 formData.append('photo', blob, 'selfie.jpg');
-                
                 const response = await fetch(
                     `${API_BASE}/events/${currentJoinCode}/upload_photo?nickname=${encodeURIComponent(currentNickname)}`,
-                    {
-                        method: 'POST',
-                        body: formData
-                    }
+                    { method: 'POST', body: formData }
                 );
-                
                 if (!response.ok) {
                     const error = await response.json();
                     throw new Error(error.detail || 'Failed to upload photo');
                 }
-                
                 uploadStatus.textContent = 'Photo uploaded!';
-                uploadStatus.className = 'upload-status success';
+                uploadStatus.className   = 'upload-status success';
                 return true;
             } catch (err) {
-                console.error('Upload error:', err);
                 uploadStatus.textContent = 'Failed to upload photo. You can continue without it.';
-                uploadStatus.className = 'upload-status error';
+                uploadStatus.className   = 'upload-status error';
                 return false;
             }
         }
 
         async function proceedToEvent() {
-            if (capturedPhoto) {
-                await uploadPhoto();
-            }
-            
+            if (capturedPhoto) await uploadPhoto();
             setTimeout(() => {
                 window.location.href = `/events/${currentJoinCode}/participant_view?nickname=${encodeURIComponent(currentNickname)}`;
             }, 500);
@@ -603,103 +580,69 @@
             const joinCode = document.getElementById('joinCode').value.trim().toUpperCase();
             const nickname = document.getElementById('nickname').value.trim();
 
-            // Validation
             if (!validateJoinCode(joinCode)) {
-                showAlert('Please enter a valid event code (4-10 characters)', 'error');
+                showAlert('Please enter a valid event code (4–10 characters)', 'error');
                 document.getElementById('joinCode').classList.add('error');
                 return;
             }
-
             if (!validateNickname(nickname)) {
-                showAlert('Please enter a valid nickname (5-20 characters, alphanumeric and underscore only)', 'error');
+                showAlert('Nickname must be 3–20 characters (letters, numbers, underscore only)', 'error');
                 document.getElementById('nickname').classList.add('error');
                 return;
             }
 
-            // Remove error styling
             document.getElementById('joinCode').classList.remove('error');
             document.getElementById('nickname').classList.remove('error');
 
-            const btn = document.getElementById('joinBtn');
+            const btn     = document.getElementById('joinBtn');
             const btnText = document.getElementById('btnText');
-            const originalText = btnText.textContent;
+            const origTxt = btnText.textContent;
 
-            btn.disabled = true;
-            btnText.innerHTML = '<div class="loading"></div>Joining...';
+            btn.disabled        = true;
+            btnText.innerHTML   = '<div class="loading"></div>Joining…';
 
             try {
-                // First, verify the event exists
-                const eventCheckResponse = await fetch(`${API_BASE}/events/${joinCode}/state`);
-
-                if (!eventCheckResponse.ok) {
-                    if (eventCheckResponse.status === 404) {
-                        throw new Error('Event not found. Please check the event code.');
-                    }
-                    throw new Error('Failed to verify event');
+                const eventCheck = await fetch(`${API_BASE}/events/${joinCode}/state`);
+                if (!eventCheck.ok) {
+                    throw new Error(eventCheck.status === 404
+                        ? 'Event not found. Please check the event code.'
+                        : 'Failed to verify event');
                 }
 
-                // Join the event
-                const joinResponse = await fetch(`${API_BASE}/events/${joinCode}/join`, {
+                const joinRes = await fetch(`${API_BASE}/events/${joinCode}/join`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ nickname })
                 });
-
-                if (!joinResponse.ok) {
-                    const error = await joinResponse.json();
+                if (!joinRes.ok) {
+                    const error = await joinRes.json();
                     throw new Error(error.detail || 'Failed to join event');
                 }
 
-                const participantData = await joinResponse.json();
+                currentJoinCode  = joinCode;
+                currentNickname  = nickname;
+                localStorage.setItem('speedfriending_participant', JSON.stringify({ nickname, joinCode }));
 
-                // Store for later use
-                currentJoinCode = joinCode;
-                currentNickname = nickname;
-                sessionStorage.setItem('current_nickname', nickname);
-                sessionStorage.setItem('current_join_code', joinCode);
-
-                // Hide join form and show photo section
                 document.getElementById('joinForm').style.display = 'none';
                 document.getElementById('photoSection').classList.add('active');
-                
-                // Auto-start camera
-                setTimeout(() => {
-                    startCamera();
-                }, 500);
+                setTimeout(startCamera, 500);
 
             } catch (error) {
                 showAlert(error.message || 'Failed to join event. Please try again.', 'error');
-                btn.disabled = false;
-                btnText.textContent = originalText;
+                btn.disabled      = false;
+                btnText.textContent = origTxt;
             }
         });
 
-        // Camera button handlers
         document.getElementById('startCameraBtn').addEventListener('click', startCamera);
         document.getElementById('retakeBtn').addEventListener('click', retakePhoto);
-        document.getElementById('usePhotoBtn').addEventListener('click', capturePhoto);
-        document.getElementById('skipPhotoBtn').addEventListener('click', () => {
-            stopCamera();
-            proceedToEvent();
-        });
-        document.getElementById('usePhotoBtn').addEventListener('click', () => {
-            stopCamera();
-            proceedToEvent();
-        });
+        document.getElementById('usePhotoBtn').addEventListener('click', () => { capturePhoto(); stopCamera(); proceedToEvent(); });
+        document.getElementById('skipPhotoBtn').addEventListener('click', () => { stopCamera(); proceedToEvent(); });
 
-        // Clear error styling on input
-        document.getElementById('joinCode').addEventListener('input', function () {
-            this.classList.remove('error');
-        });
+        document.getElementById('joinCode').addEventListener('input', function () { this.classList.remove('error'); });
+        document.getElementById('nickname').addEventListener('input', function () { this.classList.remove('error'); });
 
-        document.getElementById('nickname').addEventListener('input', function () {
-            this.classList.remove('error');
-        });
-
-        // Cleanup on page leave
-        window.addEventListener('beforeunload', () => {
-            stopCamera();
-        });
+        window.addEventListener('beforeunload', stopCamera);
     </script>
 </body>
 

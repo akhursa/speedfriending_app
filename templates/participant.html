@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Speed Friending - {{ safe_nickname }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,694 +16,677 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Albert Sans', -apple-system, sans-serif;
+            background: #ffffff;
             min-height: 100vh;
             display: flex;
-            align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 10vh 16px 40vh;
         }
 
-        .container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 600px;
+        .page-container {
             width: 100%;
-            padding: 40px;
+            max-width: 375px;
             text-align: center;
         }
 
-        .header {
-            margin-bottom: 30px;
+        /* ── Logo ─────────────────────────────────────── */
+        .logo-section {
+            margin-bottom: 34px;
         }
 
-        .header h1 {
-            font-size: 28px;
-            color: #333;
-            margin-bottom: 10px;
+        .logo-circle-img {
+            width: 100px;
+            height: 100px;
+            display: block;
+            margin: 0 auto 30px;
         }
 
-        .header p {
-            color: #666;
-            font-size: 14px;
+        .logo-title {
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(to right, #FF9A00, #C82901);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
         }
 
-        .timer {
-            font-size: 48px;
-            font-weight: bold;
-            color: #667eea;
-            margin: 30px 0;
-            font-family: 'Monaco', 'Courier New', monospace;
-        }
+        /* hidden element used by JS for event info */
+        #event-title { display: none; }
 
-        .timer.warning {
-            color: #ffc107;
-        }
-
-        .timer.critical {
-            color: #ff4444;
-        }
-
+        /* ── Phase badge ──────────────────────────────── */
         .phase-badge {
             display: inline-block;
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 20px;
-        }
-
-        .phase-talk {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .phase-break {
-            background: #fff3cd;
-            color: #856404;
+            padding: 6px 22px;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 30px;
+            border: 1.5px solid rgba(0, 0, 0, 0.2);
+            color: rgba(0, 0, 0, 0.5);
         }
 
         .phase-lobby {
-            background: #d1ecf1;
-            color: #0c5460;
+            border-color: rgba(0, 0, 0, 0.2);
+            color: rgba(0, 0, 0, 0.5);
         }
 
-        .partner-section {
-            background: #f8f9ff;
-            border-radius: 12px;
-            padding: 30px;
-            margin: 30px 0;
+        .phase-talk {
+            border-color: #ff9a00;
+            background: #fff5e6;
+            color: #c82901;
         }
 
-        .partner-label {
-            color: #666;
+        .phase-break {
+            border-color: #3a5a80;
+            color: #3a5a80;
+        }
+
+        /* ── Timer ────────────────────────────────────── */
+        .timer {
+            font-size: 54px;
+            font-weight: 800;
+            color: #c82901;
+            margin-bottom: 42px;
+            line-height: 1;
+            letter-spacing: -1px;
+        }
+
+        .timer.break-timer {
+            color: #3a5a80;
+        }
+
+        .timer.warning {
+            color: #e8a000;
+        }
+
+        .timer.critical {
+            color: #c82901;
+        }
+
+        /* ── Phase sections ───────────────────────────── */
+        .phase-section {
+            width: 100%;
+        }
+
+        /* ── Waiting text (lobby) ─────────────────────── */
+        .waiting-text {
+            font-size: 16px;
+            font-weight: 400;
+            color: rgba(0, 0, 0, 0.5);
+            margin-top: 18px;
+        }
+
+        /* ── Question card ────────────────────────────── */
+        .question-card {
+            background: linear-gradient(135deg, #ff9a00 0%, #c82901 100%);
+            border-radius: 38px;
+            padding: 30px 20px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .question-label {
             font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 12px;
         }
 
-        .partner-nickname {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
+        .question-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.5;
+        }
+
+        /* ── Partner area ─────────────────────────────── */
+        .partner-area {
+            margin: 16px 0 20px;
+        }
+
+        .partner-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: rgba(0, 0, 0, 0.7);
+            margin-top: 10px;
             word-break: break-word;
         }
 
-        .no-partner-yet {
-            color: #999;
-            font-style: italic;
-            font-size: 16px;
+        .partner-photo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+            margin: 0 auto;
+            border: 3px solid #c82901;
         }
 
-        .action-buttons {
-            display: grid;
-            gap: 12px;
-            margin: 30px 0;
+        .partner-photo-placeholder {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: #fff5e6;
+            border: 3px dashed rgba(200, 41, 1, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            margin: 0 auto;
         }
 
-        button {
-            padding: 16px 32px;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
+        .no-partner-msg {
+            font-size: 18px;
             font-weight: 600;
-            transition: all 0.3s ease;
+            color: rgba(0, 0, 0, 0.5);
+            font-style: italic;
         }
 
+        /* ── Resting (talk phase) ─────────────────────── */
+        .resting-text {
+            font-size: 20px;
+            font-weight: 600;
+            color: rgba(0, 0, 0, 0.6);
+            margin-bottom: 8px;
+        }
+
+        .resting-subtext {
+            font-size: 14px;
+            font-weight: 400;
+            color: rgba(0, 0, 0, 0.4);
+        }
+
+        /* ── Primary button ───────────────────────────── */
         .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 239px;
+            height: 57px;
+            background: linear-gradient(90deg, #ff9a00 0%, #c82901 100%);
+            border: none;
+            border-radius: 184px;
+            font-family: 'Albert Sans', sans-serif;
+            font-size: 20px;
+            font-weight: 800;
             color: white;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+            margin-top: 8px;
         }
 
         .btn-primary:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            opacity: 0.92;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(200, 41, 1, 0.3);
         }
 
-        button:disabled {
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        .btn-primary:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
 
+        /* ── Break illustrations ──────────────────────── */
+        .illustration {
+            display: block;
+            margin: 20px auto 24px;
+            max-width: 264px;
+            height: auto;
+        }
+
+        /* ── Break message ────────────────────────────── */
+        .break-message {
+            font-size: 15px;
+            font-weight: 400;
+            color: rgba(0, 0, 0, 0.55);
+            line-height: 1.55;
+            padding: 0 8px;
+        }
+
+        /* ── End screen ───────────────────────────────── */
+        .end-message {
+            font-size: 20px;
+            font-weight: 600;
+            color: rgba(0, 0, 0, 0.65);
+            line-height: 1.4;
+            padding: 0 8px;
+        }
+
+        .illustration-end {
+            max-width: 218px;
+        }
+
+        /* ── Status indicator ─────────────────────────── */
         .status-indicator {
-            margin-top: 20px;
-            padding: 12px;
-            border-radius: 8px;
+            margin-top: 16px;
+            padding: 12px 20px;
+            border-radius: 50px;
             font-size: 14px;
             font-weight: 600;
+            display: inline-block;
         }
 
         .status-met {
-            background: #d4edda;
-            color: #155724;
+            background: #e8f5e9;
+            color: #2a7a32;
         }
 
-        .status-pending {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-
-        .question-card {
-            background: linear-gradient(135deg, #fff5e6 0%, #ffe8cc 100%);
-            border-left: 4px solid #ff9800;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-        }
-
-        .question-label {
-            color: #ff6f00;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .question-text {
-            color: #333;
-            font-size: 18px;
-            font-weight: 500;
-            line-height: 1.5;
-        }
-
+        /* ── Round-end modal ──────────────────────────── */
         .modal {
             display: none;
             position: fixed;
             z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
 
         .modal.show {
             display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         .modal-content {
-            background-color: white;
-            padding: 40px;
-            border-radius: 16px;
+            background: white;
+            padding: 36px 28px;
+            border-radius: 24px;
             text-align: center;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 500px;
-            animation: slideIn 0.3s ease;
+            max-width: 340px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            animation: popIn 0.3s ease;
         }
 
-        @keyframes slideIn {
-            from {
-                transform: translateY(-50px);
-                opacity: 0;
-            }
-
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
+        @keyframes popIn {
+            from { transform: scale(0.92) translateY(-10px); opacity: 0; }
+            to   { transform: scale(1) translateY(0);       opacity: 1; }
         }
 
         .modal-content h2 {
-            font-size: 28px;
-            color: #333;
-            margin-bottom: 20px;
+            font-size: 26px;
+            font-weight: 700;
+            color: rgba(0, 0, 0, 0.75);
+            margin-bottom: 12px;
         }
 
-        .modal-content .next-partner {
-            font-size: 20px;
-            color: #667eea;
-            font-weight: bold;
-            margin: 20px 0;
-            padding: 20px;
-            background: #f8f9ff;
-            border-radius: 8px;
-        }
-
-        .modal-content button {
-            margin-top: 20px;
-        }
-
-        .info-box {
-            background: #e7f3ff;
-            border-left: 4px solid #667eea;
-            padding: 15px;
-            border-radius: 4px;
-            text-align: left;
-            margin: 20px 0;
+        .modal-content p {
             font-size: 14px;
-            color: #0c5460;
+            color: rgba(0, 0, 0, 0.5);
+            margin-bottom: 16px;
         }
 
-        .partner-photo {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin: 15px auto;
-            border: 4px solid #667eea;
-            display: block;
-        }
-
-        .partner-photo-placeholder {
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            margin: 15px auto;
-            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-            border: 4px dashed #667eea;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 48px;
-        }
-
-        .my-profile-section {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-        }
-
-        .my-profile-photo {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid #667eea;
-        }
-
-        .my-profile-placeholder {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
-            border: 2px solid #667eea;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
+        .modal-partner-name {
+            font-size: 22px;
+            font-weight: 700;
+            color: #c82901;
+            margin: 12px 0 20px;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>⚡ Speed Friending</h1>
-            <p id="event-title">Loading event...</p>
+    <div class="page-container">
+
+        <!-- Logo -->
+        <div class="logo-section">
+            <img class="logo-circle-img" src="/static/images/logo-circle.svg" alt="Speed Friending">
+            <div class="logo-title">Speed Friending</div>
         </div>
 
-        <div id="phase-badge" class="phase-badge">-</div>
+        <!-- Hidden element used by JS -->
+        <div id="event-title"></div>
 
-        <div class="timer" id="timer">--:--</div>
+        <!-- Phase badge -->
+        <div id="phase-badge" class="phase-badge phase-lobby">Lobby</div>
 
-        <!-- TALK PHASE: Current Partner -->
-        <div id="talk-phase-section" style="display: none;">
-            <div id="question-display-talk" class="question-card" style="display: none;">
-                <div class="question-label">🎯 This Round's Question</div>
-                <div id="question-text-talk" class="question-text">Loading question...</div>
+        <!-- Timer -->
+        <div id="timer" class="timer">--:--</div>
+
+        <!-- ── LOBBY PHASE ─────────────────────────────── -->
+        <div id="lobby-phase-section" class="phase-section" style="display: none;">
+            <p id="lobby-message" class="waiting-text">Waiting for the event to start</p>
+        </div>
+
+        <!-- ── TALK PHASE ──────────────────────────────── -->
+        <div id="talk-phase-section" class="phase-section" style="display: none;">
+
+            <!-- Paired: question + partner + button -->
+            <div id="talk-paired-section">
+                <div id="question-display-talk" class="question-card" style="display: none;">
+                    <div class="question-label">This round's question:</div>
+                    <div id="question-text-talk" class="question-text">Loading question…</div>
+                </div>
+
+                <div class="partner-area">
+                    <div id="talk-partner-photo" class="partner-photo-placeholder">👤</div>
+                    <img id="talk-partner-photo-img" class="partner-photo" style="display: none;" alt="Partner photo">
+                    <div id="talk-partner-display" class="partner-name">Waiting…</div>
+                </div>
+
             </div>
 
-            <div class="partner-section">
-                <div class="partner-label">Your Current Partner</div>
-                <div id="talk-partner-photo" class="partner-photo-placeholder">👤</div>
-                <img id="talk-partner-photo-img" class="partner-photo" style="display: none;" alt="Partner photo">
-                <div id="talk-partner-display" class="partner-nickname">Waiting...</div>
-            </div>
-
-            <div class="action-buttons">
-                <button id="met-btn" class="btn-primary" onclick="markMet()">
-                    ✓ We Have Met
-                </button>
+            <!-- Resting this round -->
+            <div id="talk-resting-section" style="display: none;">
+                <img src="/static/images/illustration-resting.svg" class="illustration" alt="">
+                <p class="resting-text">You're resting this round</p>
+                <p class="resting-subtext">Sit back and relax — you'll meet someone new next round!</p>
             </div>
         </div>
 
-        <!-- BREAK PHASE: Next Partner Preview -->
-        <div id="break-phase-section" style="display: none;">
+        <!-- ── BREAK PHASE ─────────────────────────────── -->
+        <div id="break-phase-section" class="phase-section" style="display: none;">
+
+            <!-- Has next partner -->
             <div id="break-next-partner-section" style="display: none;">
-                <div class="partner-section">
-                    <div class="partner-label">Your Next Partner</div>
+                <img src="/static/images/illustration-break.svg" class="illustration" alt="">
+
+                <div class="partner-area">
                     <div id="break-partner-photo" class="partner-photo-placeholder">👤</div>
-                    <img id="break-partner-photo-img" class="partner-photo" style="display: none;" alt="Partner photo">
-                    <div id="break-partner-display" class="partner-nickname">Loading next pairing...</div>
+                    <img id="break-partner-photo-img" class="partner-photo" style="display: none;" alt="Next partner photo">
+                    <div id="break-partner-display" class="partner-name"></div>
                 </div>
             </div>
 
-            <div class="info-box" id="break-info-box">
-                <strong>Break Time!</strong><br>
-                Relax and recharge!
-            </div>
-        </div>
-
-        <!-- LOBBY PHASE: Waiting -->
-        <div id="lobby-phase-section" style="display: none;">
-            <div id="question-display-lobby" class="question-card" style="display: none;">
-                <div class="question-label">📋 Event Questions</div>
-                <div id="question-text-lobby" class="question-text">Questions will be shown when the event starts</div>
+            <!-- Resting next round -->
+            <div id="break-resting-section" style="display: none;">
+                <img src="/static/images/illustration-resting.svg" class="illustration" alt="">
             </div>
 
-            <div class="partner-section">
-                <div id="lobby-message" class="no-partner-yet">Waiting for the event to start...</div>
-            </div>
+            <!-- Message (managed by JS) -->
+            <p id="break-info-box" class="break-message"></p>
         </div>
 
-        <div id="status-indicator" style="display: none;" class="status-indicator status-pending">
-            ✓ Status: Marked as Met
+        <!-- ── END / THANK-YOU PHASE (new) ────────────── -->
+        <div id="end-phase-section" class="phase-section" style="display: none;">
+            <img src="/static/images/illustration-end.svg" class="illustration illustration-end" alt="">
+            <p class="end-message">Thank you for being with us today!</p>
         </div>
-    </div>
 
-    <!-- Notification Modal for Round End -->
+        <!-- Status: marked as met -->
+        <div id="status-indicator" style="display: none;" class="status-indicator status-met">
+            ✓ Marked as Met
+        </div>
+
+    </div><!-- .page-container -->
+
+    <!-- Round-end notification modal -->
     <div id="round-end-modal" class="modal">
         <div class="modal-content">
-            <h2>🎉 Round Finished!</h2>
+            <h2>Round Finished!</h2>
             <p>Get ready for the next pairing:</p>
-            <div id="modal-partner-photo" class="partner-photo-placeholder" style="margin: 15px auto;">👤</div>
-            <img id="modal-partner-photo-img" class="partner-photo" style="display: none; margin: 15px auto;" alt="Partner photo">
-            <div class="next-partner" id="next-partner-info">-</div>
+            <div id="modal-partner-photo" class="partner-photo-placeholder" style="margin: 0 auto 4px;">👤</div>
+            <img id="modal-partner-photo-img" class="partner-photo" style="display: none; margin: 0 auto 4px;" alt="">
+            <div id="next-partner-info" class="modal-partner-name">—</div>
             <button class="btn-primary" onclick="closeRoundModal()">Continue</button>
         </div>
     </div>
-    <script>
-        const JOIN_CODE = '{{ join_code }}';
-        const USER_NICKNAME = '{{ safe_nickname }}';
-        const API_BASE = '/events/' + JOIN_CODE;
 
-        let currentData = null;
-        let lastRound = 0;
-        let lastPhase = 'lobby';
+    <script>
+        const JOIN_CODE     = '{{ join_code }}';
+        const USER_NICKNAME = '{{ safe_nickname }}';
+        const API_BASE      = '/events/' + JOIN_CODE;
+
+        let lastPhase  = 'lobby';
+        let lastRound  = 0;
         let timerInterval = null;
 
-        // Bell sound using Web Audio API
+        // ── Bell sound ────────────────────────────────
         let audioEnabled = false;
-        
+
         function playBellSound() {
             if (!audioEnabled) return;
             try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                
-                // Create a pleasant chime/bell sound
-                const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5 chord
-                
-                frequencies.forEach((freq, i) => {
-                    const oscillator = audioCtx.createOscillator();
-                    const gainNode = audioCtx.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioCtx.destination);
-                    
-                    oscillator.frequency.value = freq;
-                    oscillator.type = 'sine';
-                    
-                    // Bell-like envelope
-                    const now = audioCtx.currentTime;
-                    gainNode.gain.setValueAtTime(0, now);
-                    gainNode.gain.linearRampToValueAtTime(0.3, now + 0.02);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.5);
-                    
-                    oscillator.start(now + i * 0.1);
-                    oscillator.stop(now + 1.5 + i * 0.1);
+                const ctx   = new (window.AudioContext || window.webkitAudioContext)();
+                const freqs = [523.25, 659.25, 783.99];
+                freqs.forEach((freq, i) => {
+                    const osc  = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.frequency.value = freq;
+                    osc.type = 'sine';
+                    const t = ctx.currentTime;
+                    gain.gain.setValueAtTime(0, t);
+                    gain.gain.linearRampToValueAtTime(0.3, t + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.01, t + 1.5);
+                    osc.start(t + i * 0.1);
+                    osc.stop(t + 1.5 + i * 0.1);
                 });
-            } catch (e) {
-                console.log('Audio not available:', e);
-            }
+            } catch (e) { /* audio unavailable */ }
         }
 
-        // Enable audio on first user interaction
-        document.addEventListener('click', function() {
-            audioEnabled = true;
-        }, { once: true });
+        document.addEventListener('click', () => { audioEnabled = true; }, { once: true });
 
+        // ── Data loading ──────────────────────────────
         async function loadData() {
             try {
-                // First, call auto_advance to check if phase should transition
                 await autoAdvancePhase();
-
-                // Then load match data
-                const response = await fetch(API_BASE + '/my_match?nickname=' + encodeURIComponent(USER_NICKNAME));
-                const data = await response.json();
+                const res  = await fetch(API_BASE + '/my_match?nickname=' + encodeURIComponent(USER_NICKNAME));
+                const data = await res.json();
                 updateUI(data);
-
-                // Load question for current round
                 await loadQuestion();
-            } catch (error) {
-                console.error('Error loading data:', error);
-            }
+            } catch (e) { console.error('loadData:', e); }
         }
 
         async function loadQuestion() {
             try {
-                const response = await fetch(API_BASE + '/current_question');
-                const data = await response.json();
+                const res  = await fetch(API_BASE + '/current_question');
+                const data = await res.json();
                 displayQuestion(data);
-            } catch (error) {
-                console.error('Error loading question:', error);
-            }
+            } catch (e) { console.error('loadQuestion:', e); }
         }
 
         function displayQuestion(data) {
-            const questionDisplayTalk = document.getElementById('question-display-talk');
-            const questionDisplayBreak = document.getElementById('question-display-break');
-            const questionDisplayLobby = document.getElementById('question-display-lobby');
-
-            // Hide all question displays
-            if (questionDisplayTalk) questionDisplayTalk.style.display = 'none';
-            if (questionDisplayLobby) questionDisplayLobby.style.display = 'none';
-
-            if (data.status === 'success') {
-                const phase = lastPhase || 'lobby';
-                if (phase === 'talk' && questionDisplayTalk) {
-                    document.getElementById('question-text-talk').textContent = data.question;
-                    questionDisplayTalk.style.display = 'block';
-                }
+            const card = document.getElementById('question-display-talk');
+            if (!card) return;
+            card.style.display = 'none';
+            if (data.status === 'success' && lastPhase === 'talk') {
+                document.getElementById('question-text-talk').textContent = data.question;
+                card.style.display = 'block';
             }
         }
 
         async function autoAdvancePhase() {
             try {
-                const response = await fetch(API_BASE + '/auto_advance', { method: 'POST' });
-                const result = await response.json();
-
-                if (result.status === 'advanced' && result.auto_advanced) {
-                    console.log('Auto-advanced:', result);
-                }
-            } catch (error) {
-                console.error('Error in auto_advance:', error);
-            }
+                await fetch(API_BASE + '/auto_advance', { method: 'POST' });
+            } catch (e) { /* ignore */ }
         }
 
+        // ── Main UI update ────────────────────────────
         function updateUI(data) {
-            const currentRound = data.current_round || 0;
+            const phase  = data.phase  || 'lobby';
             const status = data.status || 'waiting';
-            const phase = data.phase || 'lobby';
 
-            // Play bell sound when transitioning from talk to break
-            if (lastPhase === 'talk' && phase === 'break') {
-                playBellSound();
-            }
+            if (lastPhase === 'talk' && phase === 'break') playBellSound();
+            if (lastPhase === 'break' && phase === 'talk') playBellSound();
 
-            lastRound = currentRound;
             lastPhase = phase;
+            lastRound = data.current_round || 0;
 
-            // Fetch full event state for timer and phase confirmation
             fetchEventState();
 
             // Hide all phase sections
-            document.getElementById('talk-phase-section').style.display = 'none';
-            document.getElementById('break-phase-section').style.display = 'none';
-            document.getElementById('lobby-phase-section').style.display = 'none';
+            ['lobby', 'talk', 'break', 'end'].forEach(p =>
+                document.getElementById(p + '-phase-section').style.display = 'none'
+            );
 
-            // Show appropriate section based on phase
             if (phase === 'talk') {
                 document.getElementById('talk-phase-section').style.display = 'block';
-                const talkPartnerDisplay = document.getElementById('talk-partner-display');
-                const talkPartnerPhoto = document.getElementById('talk-partner-photo');
-                const talkPartnerPhotoImg = document.getElementById('talk-partner-photo-img');
-                const metBtn = document.getElementById('met-btn');
+                updateTalkPhase(status, data);
 
-                // Reset photo display
-                talkPartnerPhoto.style.display = 'flex';
-                talkPartnerPhotoImg.style.display = 'none';
-
-                if (status === 'no_pair' || status === 'resting') {
-                    talkPartnerDisplay.innerHTML = '<span class="no-partner-yet">Resting this round<br>(You\'ll meet next round!)</span>';
-                    talkPartnerPhoto.style.display = 'none';
-                    metBtn.style.display = 'none';
-                } else if (status === 'paired' && data.partner) {
-                    talkPartnerDisplay.textContent = data.partner.nickname;
-                    if (data.partner.photo_url) {
-                        talkPartnerPhotoImg.src = data.partner.photo_url;
-                        talkPartnerPhotoImg.style.display = 'block';
-                        talkPartnerPhoto.style.display = 'none';
-                    }
-                    metBtn.style.display = 'block';
-                } else {
-                    talkPartnerDisplay.innerHTML = '<span class="no-partner-yet">Loading partner...</span>';
-                    metBtn.style.display = 'none';
-                }
             } else if (phase === 'break') {
                 document.getElementById('break-phase-section').style.display = 'block';
+                updateBreakPhase(status, data);
 
-                // Reset photo display
-                const breakPartnerPhoto = document.getElementById('break-partner-photo');
-                const breakPartnerPhotoImg = document.getElementById('break-partner-photo-img');
-                breakPartnerPhoto.style.display = 'flex';
-                breakPartnerPhotoImg.style.display = 'none';
+            } else if (phase === 'ended') {
+                document.getElementById('end-phase-section').style.display = 'block';
+                if (timerInterval) clearInterval(timerInterval);
+                document.getElementById('timer').textContent = '--:--';
+                document.getElementById('timer').className = 'timer';
 
-                if (status === 'next_partner_preview') {
-                    document.getElementById('break-next-partner-section').style.display = 'block';
-                    document.getElementById('break-partner-display').textContent = data.next_partner.nickname;
-                    if (data.next_partner.photo_url) {
-                        breakPartnerPhotoImg.src = data.next_partner.photo_url;
-                        breakPartnerPhotoImg.style.display = 'block';
-                        breakPartnerPhoto.style.display = 'none';
-                    }
-                    document.getElementById('break-info-box').innerHTML = '<strong>Break Time!</strong><br>Get ready to meet your next partner!';
-                } else if (status === 'resting') {
-                    document.getElementById('break-next-partner-section').style.display = 'none';
-                    document.getElementById('break-info-box').innerHTML = '<strong>Break Time!</strong><br>You\'re resting next round. Relax and recharge!';
-                } else {
-                    document.getElementById('break-next-partner-section').style.display = 'none';
-                    document.getElementById('break-info-box').innerHTML = '<strong>Break Time!</strong><br>Relax and recharge!';
-                }
             } else {
+                // lobby (or unknown)
                 document.getElementById('lobby-phase-section').style.display = 'block';
             }
         }
 
-        async function fetchEventState() {
-            try {
-                const response = await fetch(API_BASE + '/state');
-                const state = await response.json();
+        function updateTalkPhase(status, data) {
+            const pairedSection   = document.getElementById('talk-paired-section');
+            const restingSection  = document.getElementById('talk-resting-section');
+            const photoHolder     = document.getElementById('talk-partner-photo');
+            const photoImg        = document.getElementById('talk-partner-photo-img');
+            const nameEl          = document.getElementById('talk-partner-display');
 
-                document.getElementById('event-title').textContent = state.join_code + ' - ' + state.status.toUpperCase();
+            // Reset photos
+            photoHolder.style.display = 'flex';
+            photoImg.style.display    = 'none';
 
-                const phaseBadge = document.getElementById('phase-badge');
-                const phase = state.phase || 'lobby';
-
-                phaseBadge.textContent = phase.toUpperCase();
-                phaseBadge.className = 'phase-badge phase-' + phase;
-
-                updateTimer(state.seconds_left, phase);
-            } catch (error) {
-                console.error('Error loading event state:', error);
+            if (status === 'no_pair' || status === 'resting') {
+                pairedSection.style.display  = 'none';
+                restingSection.style.display = 'block';
+            } else if (status === 'paired' && data.partner) {
+                pairedSection.style.display  = 'block';
+                restingSection.style.display = 'none';
+                nameEl.textContent = data.partner.nickname;
+                if (data.partner.photo_url) {
+                    photoImg.src              = data.partner.photo_url;
+                    photoImg.style.display    = 'block';
+                    photoHolder.style.display = 'none';
+                }
+            } else {
+                pairedSection.style.display  = 'block';
+                restingSection.style.display = 'none';
+                nameEl.innerHTML = '<span class="no-partner-msg">Loading partner…</span>';
             }
         }
 
-        function updateTimer(seconds, phase) {
-            const timerEl = document.getElementById('timer');
+        function updateBreakPhase(status, data) {
+            const nextPartnerSection = document.getElementById('break-next-partner-section');
+            const restingSection     = document.getElementById('break-resting-section');
+            const infoBox            = document.getElementById('break-info-box');
+            const photoHolder        = document.getElementById('break-partner-photo');
+            const photoImg           = document.getElementById('break-partner-photo-img');
 
-            function formatTime(s) {
-                const mins = Math.floor(s / 60);
-                const secs = s % 60;
-                return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+            // Reset photos
+            photoHolder.style.display = 'flex';
+            photoImg.style.display    = 'none';
+
+            if (status === 'next_partner_preview' && data.next_partner) {
+                nextPartnerSection.style.display = 'block';
+                restingSection.style.display     = 'none';
+                document.getElementById('break-partner-display').textContent = data.next_partner.nickname;
+                if (data.next_partner.photo_url) {
+                    photoImg.src              = data.next_partner.photo_url;
+                    photoImg.style.display    = 'block';
+                    photoHolder.style.display = 'none';
+                }
+                infoBox.textContent = 'Get ready to meet your next partner';
+
+            } else if (status === 'resting') {
+                nextPartnerSection.style.display = 'none';
+                restingSection.style.display     = 'block';
+                infoBox.textContent = "Oops, seems we've run out of partners. But don't worry, take this extra break to recharge!";
+
+            } else {
+                nextPartnerSection.style.display = 'block';
+                restingSection.style.display     = 'none';
+                document.getElementById('break-partner-display').textContent = '';
+                infoBox.textContent = 'Break time! Relax and recharge.';
+            }
+        }
+
+        // ── Event state + timer ───────────────────────
+        async function fetchEventState() {
+            try {
+                const res   = await fetch(API_BASE + '/state');
+                const state = await res.json();
+
+                const phase = state.phase || 'lobby';
+
+                // Handle event ended
+                if (state.status === 'ended' || phase === 'ended') {
+                    ['lobby', 'talk', 'break', 'end'].forEach(p =>
+                        document.getElementById(p + '-phase-section').style.display = 'none'
+                    );
+                    document.getElementById('end-phase-section').style.display = 'block';
+                    if (timerInterval) clearInterval(timerInterval);
+                    const badge = document.getElementById('phase-badge');
+                    badge.textContent = 'End';
+                    badge.className   = 'phase-badge phase-lobby';
+                    document.getElementById('timer').textContent = '--:--';
+                    document.getElementById('timer').className   = 'timer';
+                    return;
+                }
+
+                // Update badge
+                const badge = document.getElementById('phase-badge');
+                badge.textContent = phase.charAt(0).toUpperCase() + phase.slice(1);
+                badge.className   = 'phase-badge phase-' + phase;
+
+                updateTimer(state.seconds_left, phase);
+            } catch (e) { console.error('fetchEventState:', e); }
+        }
+
+        function updateTimer(seconds, phase) {
+            const el = document.getElementById('timer');
+
+            function fmt(s) {
+                const m = Math.floor(s / 60), sec = s % 60;
+                return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
             }
 
             if (timerInterval) clearInterval(timerInterval);
 
             if (phase === 'lobby') {
-                timerEl.textContent = '--:--';
-                timerEl.className = 'timer';
+                el.textContent = '--:--';
+                el.className   = 'timer';
                 return;
             }
 
+            // Base color class per phase
+            const baseClass = phase === 'break' ? 'timer break-timer' : 'timer';
             let remaining = seconds;
-            timerEl.textContent = formatTime(remaining);
+            el.textContent = fmt(remaining);
+            el.className   = baseClass;
 
             timerInterval = setInterval(() => {
                 remaining--;
                 if (remaining < 0) remaining = 0;
+                el.textContent = fmt(remaining);
 
-                timerEl.textContent = formatTime(remaining);
-
-                // Color warning: yellow at 30s, red at 10s
-                timerEl.className = 'timer';
+                // Warning states override base class
                 if (remaining <= 10) {
-                    timerEl.classList.add('critical');
+                    el.className = 'timer critical';
                 } else if (remaining <= 30) {
-                    timerEl.classList.add('warning');
+                    el.className = 'timer warning';
+                } else {
+                    el.className = baseClass;
                 }
 
-                if (remaining === 0) {
-                    clearInterval(timerInterval);
-                }
+                if (remaining === 0) clearInterval(timerInterval);
             }, 1000);
         }
 
-        async function markMet() {
-            const btn = document.getElementById('met-btn');
-            btn.disabled = true;
-
-            try {
-                const response = await fetch(API_BASE + '/mark_met', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nickname: USER_NICKNAME })
-                });
-
-                const result = await response.json();
-                if (response.ok) {
-                    // Show status message
-                    btn.textContent = '✓ Marked as Met';
-                    setTimeout(() => {
-                        btn.disabled = false;
-                        btn.textContent = '✓ We Have Met';
-                    }, 2000);
-                } else {
-                    alert('Error: ' + (result.detail || 'Unknown error'));
-                    btn.disabled = false;
-                }
-            } catch (error) {
-                alert('Error marking as met: ' + error.message);
-                btn.disabled = false;
-            }
+        // ── Modal ─────────────────────────────────────
+        function closeRoundModal() {
+            document.getElementById('round-end-modal').classList.remove('show');
         }
 
-        async function markMetDuringBreak() {
-            const btn = document.getElementById('mark-met-break-btn');
-            btn.disabled = true;
-
-            try {
-                // During break, we try to mark the current round as met (if not done yet)
-                const response = await fetch(API_BASE + '/mark_met', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nickname: USER_NICKNAME })
-                });
-
-                const result = await response.json();
-                if (response.ok) {
-                    btn.textContent = '✓ Marked as Met';
-                    setTimeout(() => {
-                        btn.disabled = false;
-                        btn.textContent = '✓ Mark Previous as Met';
-                    }, 2000);
-                } else {
-                    // During break, mark_met will fail - show friendly message
-                    if (result.detail && result.detail.includes('talk phase')) {
-                        alert('Already marked during talk phase!');
-                    } else {
-                        alert('Note: Mark during talk phase to record the meeting.');
-                    }
-                    btn.disabled = false;
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                btn.disabled = false;
-            }
-        }
-
-        // Initial load and auto-refresh
+        // ── Boot ──────────────────────────────────────
         loadData();
-        setInterval(loadData, 2000); // Refresh every 2 seconds
+        setInterval(loadData, 2000);
     </script>
 </body>
+
+</html>
 
 </html>
