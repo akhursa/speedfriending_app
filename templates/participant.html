@@ -18,10 +18,13 @@
         body {
             font-family: 'Albert Sans', -apple-system, sans-serif;
             background: #ffffff;
-            min-height: 100vh;
+            height: 100vh;
+            height: 100dvh;
             display: flex;
             justify-content: center;
-            padding: 10vh 16px 40vh;
+            align-items: center;
+            padding: 16px;
+            overflow: hidden;
         }
 
         .page-container {
@@ -329,6 +332,18 @@
             font-weight: 700;
             color: #c82901;
             margin: 12px 0 20px;
+        }
+
+        @media (max-height: 700px) {
+            .logo-circle-img { width: 64px; height: 64px; margin-bottom: 16px; }
+            .logo-title { font-size: 24px; }
+            .logo-section { margin-bottom: 16px; }
+            .phase-badge { margin-bottom: 16px; padding: 4px 16px; font-size: 13px; }
+            .timer { font-size: 40px; margin-bottom: 24px; }
+            .question-card { padding: 20px 16px; border-radius: 28px; margin-bottom: 14px; }
+            .question-text { font-size: 16px; }
+            .partner-photo, .partner-photo-placeholder { width: 72px; height: 72px; }
+            .illustration { max-width: 180px; margin: 12px auto 16px; }
         }
     </style>
 </head>
