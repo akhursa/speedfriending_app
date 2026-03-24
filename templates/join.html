@@ -23,7 +23,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 0;
             position: relative;
             overflow: hidden;
         }
@@ -54,14 +54,14 @@
         .logo-mark {
             display: flex;
             justify-content: center;
-            margin-bottom: 20px;
+            margin-bottom: 40px;
             position: relative;
             z-index: 10;
         }
 
         .logo-mark img {
-            width: 56px;
-            height: auto;
+            width: 80px;
+            /* height: auto; */
         }
 
         /* Main card */
@@ -100,7 +100,9 @@
             font-size: 14px;
         }
 
-        .alert.show { display: block; }
+        .alert.show {
+            display: block;
+        }
 
         .alert-error {
             background: #fff0ee;
@@ -206,11 +208,22 @@
             vertical-align: middle;
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
 
         @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(12px); }
-            to   { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Divider */
@@ -270,8 +283,17 @@
             border-color: #c82901;
         }
 
-        #videoElement { width: 100%; height: 100%; object-fit: cover; }
-        #photoCanvas  { width: 100%; height: 100%; object-fit: cover; }
+        #videoElement {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #photoCanvas {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
         .photo-placeholder {
             width: 100%;
@@ -284,8 +306,13 @@
             gap: 8px;
         }
 
-        .photo-placeholder-icon { font-size: 40px; }
-        .photo-placeholder span  { font-size: 13px; }
+        .photo-placeholder-icon {
+            font-size: 40px;
+        }
+
+        .photo-placeholder span {
+            font-size: 13px;
+        }
 
         .camera-controls {
             display: flex;
@@ -308,8 +335,14 @@
             transition: opacity 0.2s;
         }
 
-        .btn-camera:hover:not(:disabled) { opacity: 0.88; }
-        .btn-camera:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-camera:hover:not(:disabled) {
+            opacity: 0.88;
+        }
+
+        .btn-camera:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
 
         .btn-camera.btn-secondary {
             background: white;
@@ -317,7 +350,9 @@
             border: 1.5px solid #c82901;
         }
 
-        .btn-camera.btn-secondary:hover { background: #fff5e6; }
+        .btn-camera.btn-secondary:hover {
+            background: #fff5e6;
+        }
 
         .btn-skip {
             display: block;
@@ -333,7 +368,9 @@
             padding: 8px 16px;
         }
 
-        .btn-skip:hover { color: rgba(0, 0, 0, 0.65); }
+        .btn-skip:hover {
+            color: rgba(0, 0, 0, 0.65);
+        }
 
         .upload-status {
             text-align: center;
@@ -342,19 +379,58 @@
             min-height: 20px;
         }
 
-        .upload-status.success { color: #2a7a32; }
-        .upload-status.error   { color: #c82901; }
+        .upload-status.success {
+            color: #2a7a32;
+        }
+
+        .upload-status.error {
+            color: #c82901;
+        }
 
         @media (max-height: 700px) {
-            .card { padding: 28px 24px 24px; }
-            .card-title { font-size: 28px; margin-bottom: 6px; }
-            .card-subtitle { font-size: 12px; margin-bottom: 16px; }
-            input[type="text"] { height: 48px; font-size: 17px; }
-            .btn-primary { height: 48px; font-size: 19px; margin-top: 16px; }
-            .logo-mark { margin-bottom: 12px; }
-            .logo-mark img { width: 44px; }
-            .form-group { margin-bottom: 12px; }
-            .form-note { font-size: 11px; margin-top: 5px; }
+            .card {
+                padding: 28px 24px 24px;
+            }
+
+            .card-title {
+                font-size: 28px;
+                margin-bottom: 6px;
+            }
+
+            .card-subtitle {
+                font-size: 12px;
+                margin-bottom: 16px;
+            }
+
+            input[type="text"] {
+                height: 48px;
+                font-size: 17px;
+            }
+
+            .btn-primary {
+                height: 48px;
+                font-size: 19px;
+                margin-top: 16px;
+            }
+
+            /* 
+            .logo-mark {
+                margin-bottom: 12px;
+            }
+
+            .logo-mark img {
+                width: 44px;
+            }
+            */
+
+            .form-group {
+                margin-bottom: 12px;
+            }
+
+            .form-note {
+                font-size: 11px;
+                margin-top: 5px;
+            }
         }
     </style>
 </head>
@@ -380,14 +456,14 @@
 
             <form id="joinForm">
                 <div class="form-group">
-                    <input type="text" id="joinCode" name="join_code"
-                           placeholder="Event code" maxlength="10" required autocomplete="off">
+                    <input type="text" id="joinCode" name="join_code" placeholder="Event code" maxlength="10" required
+                        autocomplete="off">
                     <div class="form-note">You should have received it from your facilitator</div>
                 </div>
 
                 <div class="form-group">
-                    <input type="text" id="nickname" name="nickname"
-                           placeholder="Your Nickname" required autocomplete="off">
+                    <input type="text" id="nickname" name="nickname" placeholder="Your Nickname" required
+                        autocomplete="off">
                     <div class="form-note">We'll use it to match you with other participants</div>
                 </div>
 
@@ -522,19 +598,19 @@
         }
 
         function capturePhoto() {
-            const video  = document.getElementById('videoElement');
+            const video = document.getElementById('videoElement');
             const canvas = document.getElementById('photoCanvas');
-            canvas.width  = video.videoWidth;
+            canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             const ctx = canvas.getContext('2d');
             ctx.transform(-1, 0, 0, 1, canvas.width, 0);
             ctx.drawImage(video, 0, 0);
             capturedPhoto = canvas.toDataURL('image/jpeg', 0.8);
-            video.style.display  = 'none';
+            video.style.display = 'none';
             canvas.style.display = 'block';
             stopCamera();
-            document.getElementById('cameraControls').style.display  = 'none';
-            document.getElementById('retakeControls').style.display  = 'flex';
+            document.getElementById('cameraControls').style.display = 'none';
+            document.getElementById('retakeControls').style.display = 'flex';
         }
 
         function stopCamera() {
@@ -543,11 +619,11 @@
 
         function retakePhoto() {
             capturedPhoto = null;
-            document.getElementById('photoCanvas').style.display   = 'none';
-            document.getElementById('videoElement').style.display  = 'block';
+            document.getElementById('photoCanvas').style.display = 'none';
+            document.getElementById('videoElement').style.display = 'block';
             document.getElementById('cameraControls').style.display = 'flex';
             document.getElementById('retakeControls').style.display = 'none';
-            document.getElementById('uploadStatus').textContent    = '';
+            document.getElementById('uploadStatus').textContent = '';
             startCamera();
         }
 
@@ -555,7 +631,7 @@
             if (!capturedPhoto) return false;
             const uploadStatus = document.getElementById('uploadStatus');
             uploadStatus.textContent = 'Uploading photo…';
-            uploadStatus.className   = 'upload-status';
+            uploadStatus.className = 'upload-status';
             try {
                 const base64Data = capturedPhoto.split(',')[1];
                 const blob = await fetch(`data:image/jpeg;base64,${base64Data}`).then(r => r.blob());
@@ -570,11 +646,11 @@
                     throw new Error(error.detail || 'Failed to upload photo');
                 }
                 uploadStatus.textContent = 'Photo uploaded!';
-                uploadStatus.className   = 'upload-status success';
+                uploadStatus.className = 'upload-status success';
                 return true;
             } catch (err) {
                 uploadStatus.textContent = 'Failed to upload photo. You can continue without it.';
-                uploadStatus.className   = 'upload-status error';
+                uploadStatus.className = 'upload-status error';
                 return false;
             }
         }
@@ -607,12 +683,12 @@
             document.getElementById('joinCode').classList.remove('error');
             document.getElementById('nickname').classList.remove('error');
 
-            const btn     = document.getElementById('joinBtn');
+            const btn = document.getElementById('joinBtn');
             const btnText = document.getElementById('btnText');
             const origTxt = btnText.textContent;
 
-            btn.disabled        = true;
-            btnText.innerHTML   = '<div class="loading"></div>Joining…';
+            btn.disabled = true;
+            btnText.innerHTML = '<div class="loading"></div>Joining…';
 
             try {
                 const eventCheck = await fetch(`${API_BASE}/events/${joinCode}/state`);
@@ -632,8 +708,8 @@
                     throw new Error(error.detail || 'Failed to join event');
                 }
 
-                currentJoinCode  = joinCode;
-                currentNickname  = nickname;
+                currentJoinCode = joinCode;
+                currentNickname = nickname;
                 localStorage.setItem('speedfriending_participant', JSON.stringify({ nickname, joinCode }));
 
                 document.getElementById('joinForm').style.display = 'none';
@@ -642,7 +718,7 @@
 
             } catch (error) {
                 showAlert(error.message || 'Failed to join event. Please try again.', 'error');
-                btn.disabled      = false;
+                btn.disabled = false;
                 btnText.textContent = origTxt;
             }
         });

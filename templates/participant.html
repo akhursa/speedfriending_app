@@ -7,7 +7,8 @@
     <title>Speed Friending - {{ safe_nickname }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -23,7 +24,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 16px;
+            padding: 0;
             overflow: hidden;
         }
 
@@ -35,14 +36,17 @@
 
         /* ── Logo ─────────────────────────────────────── */
         .logo-section {
-            margin-bottom: 34px;
+            margin-bottom: 20px;
         }
 
         .logo-circle-img {
             width: 100px;
             height: 100px;
             display: block;
-            margin: 0 auto 30px;
+            /* margin-top: 80px; */
+            margin-bottom: 20px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .logo-title {
@@ -56,7 +60,9 @@
         }
 
         /* hidden element used by JS for event info */
-        #event-title { display: none; }
+        #event-title {
+            display: none;
+        }
 
         /* ── Phase badge ──────────────────────────────── */
         .phase-badge {
@@ -66,7 +72,7 @@
             font-size: 14px;
             font-weight: 600;
             letter-spacing: 0.5px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             border: 1.5px solid rgba(0, 0, 0, 0.2);
             color: rgba(0, 0, 0, 0.5);
         }
@@ -310,8 +316,15 @@
         }
 
         @keyframes popIn {
-            from { transform: scale(0.92) translateY(-10px); opacity: 0; }
-            to   { transform: scale(1) translateY(0);       opacity: 1; }
+            from {
+                transform: scale(0.92) translateY(-10px);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
         }
 
         .modal-content h2 {
@@ -335,15 +348,51 @@
         }
 
         @media (max-height: 700px) {
-            .logo-circle-img { width: 64px; height: 64px; margin-bottom: 16px; }
-            .logo-title { font-size: 24px; }
-            .logo-section { margin-bottom: 16px; }
-            .phase-badge { margin-bottom: 16px; padding: 4px 16px; font-size: 13px; }
-            .timer { font-size: 40px; margin-bottom: 24px; }
-            .question-card { padding: 20px 16px; border-radius: 28px; margin-bottom: 14px; }
-            .question-text { font-size: 16px; }
-            .partner-photo, .partner-photo-placeholder { width: 72px; height: 72px; }
-            .illustration { max-width: 180px; margin: 12px auto 16px; }
+            /* .logo-circle-img {
+                width: 64px;
+                height: 64px;
+                margin-bottom: 16px;
+            } */
+
+            .logo-title {
+                font-size: 24px;
+            }
+
+            /* .logo-section {
+                margin-bottom: 16px;
+            } */
+
+            /* .phase-badge {
+                margin-bottom: 16px;
+                padding: 4px 16px;
+                font-size: 13px;
+            } */
+
+            .timer {
+                font-size: 40px;
+                margin-bottom: 24px;
+            }
+
+            .question-card {
+                padding: 20px 16px;
+                border-radius: 28px;
+                margin-bottom: 14px;
+            }
+
+            .question-text {
+                font-size: 16px;
+            }
+
+            .partner-photo,
+            .partner-photo-placeholder {
+                width: 72px;
+                height: 72px;
+            }
+
+            .illustration {
+                max-width: 180px;
+                margin: 12px auto 16px;
+            }
         }
     </style>
 </head>
@@ -406,7 +455,8 @@
 
                 <div class="partner-area">
                     <div id="break-partner-photo" class="partner-photo-placeholder">👤</div>
-                    <img id="break-partner-photo-img" class="partner-photo" style="display: none;" alt="Next partner photo">
+                    <img id="break-partner-photo-img" class="partner-photo" style="display: none;"
+                        alt="Next partner photo">
                     <div id="break-partner-display" class="partner-name"></div>
                 </div>
             </div>
@@ -446,12 +496,12 @@
     </div>
 
     <script>
-        const JOIN_CODE     = '{{ join_code }}';
+        const JOIN_CODE = '{{ join_code }}';
         const USER_NICKNAME = '{{ safe_nickname }}';
-        const API_BASE      = '/events/' + JOIN_CODE;
+        const API_BASE = '/events/' + JOIN_CODE;
 
-        let lastPhase  = 'lobby';
-        let lastRound  = 0;
+        let lastPhase = 'lobby';
+        let lastRound = 0;
         let timerInterval = null;
 
         // ── Bell sound ────────────────────────────────
@@ -460,10 +510,10 @@
         function playBellSound() {
             if (!audioEnabled) return;
             try {
-                const ctx   = new (window.AudioContext || window.webkitAudioContext)();
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
                 const freqs = [523.25, 659.25, 783.99];
                 freqs.forEach((freq, i) => {
-                    const osc  = ctx.createOscillator();
+                    const osc = ctx.createOscillator();
                     const gain = ctx.createGain();
                     osc.connect(gain);
                     gain.connect(ctx.destination);
@@ -485,7 +535,7 @@
         async function loadData() {
             try {
                 await autoAdvancePhase();
-                const res  = await fetch(API_BASE + '/my_match?nickname=' + encodeURIComponent(USER_NICKNAME));
+                const res = await fetch(API_BASE + '/my_match?nickname=' + encodeURIComponent(USER_NICKNAME));
                 const data = await res.json();
                 updateUI(data);
                 await loadQuestion();
@@ -494,7 +544,7 @@
 
         async function loadQuestion() {
             try {
-                const res  = await fetch(API_BASE + '/current_question');
+                const res = await fetch(API_BASE + '/current_question');
                 const data = await res.json();
                 displayQuestion(data);
             } catch (e) { console.error('loadQuestion:', e); }
@@ -518,7 +568,7 @@
 
         // ── Main UI update ────────────────────────────
         function updateUI(data) {
-            const phase  = data.phase  || 'lobby';
+            const phase = data.phase || 'lobby';
             const status = data.status || 'waiting';
 
             if (lastPhase === 'talk' && phase === 'break') playBellSound();
@@ -555,30 +605,30 @@
         }
 
         function updateTalkPhase(status, data) {
-            const pairedSection   = document.getElementById('talk-paired-section');
-            const restingSection  = document.getElementById('talk-resting-section');
-            const photoHolder     = document.getElementById('talk-partner-photo');
-            const photoImg        = document.getElementById('talk-partner-photo-img');
-            const nameEl          = document.getElementById('talk-partner-display');
+            const pairedSection = document.getElementById('talk-paired-section');
+            const restingSection = document.getElementById('talk-resting-section');
+            const photoHolder = document.getElementById('talk-partner-photo');
+            const photoImg = document.getElementById('talk-partner-photo-img');
+            const nameEl = document.getElementById('talk-partner-display');
 
             // Reset photos
             photoHolder.style.display = 'flex';
-            photoImg.style.display    = 'none';
+            photoImg.style.display = 'none';
 
             if (status === 'no_pair' || status === 'resting') {
-                pairedSection.style.display  = 'none';
+                pairedSection.style.display = 'none';
                 restingSection.style.display = 'block';
             } else if (status === 'paired' && data.partner) {
-                pairedSection.style.display  = 'block';
+                pairedSection.style.display = 'block';
                 restingSection.style.display = 'none';
                 nameEl.textContent = data.partner.nickname;
                 if (data.partner.photo_url) {
-                    photoImg.src              = data.partner.photo_url;
-                    photoImg.style.display    = 'block';
+                    photoImg.src = data.partner.photo_url;
+                    photoImg.style.display = 'block';
                     photoHolder.style.display = 'none';
                 }
             } else {
-                pairedSection.style.display  = 'block';
+                pairedSection.style.display = 'block';
                 restingSection.style.display = 'none';
                 nameEl.innerHTML = '<span class="no-partner-msg">Loading partner…</span>';
             }
@@ -586,34 +636,34 @@
 
         function updateBreakPhase(status, data) {
             const nextPartnerSection = document.getElementById('break-next-partner-section');
-            const restingSection     = document.getElementById('break-resting-section');
-            const infoBox            = document.getElementById('break-info-box');
-            const photoHolder        = document.getElementById('break-partner-photo');
-            const photoImg           = document.getElementById('break-partner-photo-img');
+            const restingSection = document.getElementById('break-resting-section');
+            const infoBox = document.getElementById('break-info-box');
+            const photoHolder = document.getElementById('break-partner-photo');
+            const photoImg = document.getElementById('break-partner-photo-img');
 
             // Reset photos
             photoHolder.style.display = 'flex';
-            photoImg.style.display    = 'none';
+            photoImg.style.display = 'none';
 
             if (status === 'next_partner_preview' && data.next_partner) {
                 nextPartnerSection.style.display = 'block';
-                restingSection.style.display     = 'none';
+                restingSection.style.display = 'none';
                 document.getElementById('break-partner-display').textContent = data.next_partner.nickname;
                 if (data.next_partner.photo_url) {
-                    photoImg.src              = data.next_partner.photo_url;
-                    photoImg.style.display    = 'block';
+                    photoImg.src = data.next_partner.photo_url;
+                    photoImg.style.display = 'block';
                     photoHolder.style.display = 'none';
                 }
                 infoBox.textContent = 'Get ready to meet your next partner';
 
             } else if (status === 'resting') {
                 nextPartnerSection.style.display = 'none';
-                restingSection.style.display     = 'block';
+                restingSection.style.display = 'block';
                 infoBox.textContent = "Oops, seems we've run out of partners. But don't worry, take this extra break to recharge!";
 
             } else {
                 nextPartnerSection.style.display = 'block';
-                restingSection.style.display     = 'none';
+                restingSection.style.display = 'none';
                 document.getElementById('break-partner-display').textContent = '';
                 infoBox.textContent = 'Break time! Relax and recharge.';
             }
@@ -622,7 +672,7 @@
         // ── Event state + timer ───────────────────────
         async function fetchEventState() {
             try {
-                const res   = await fetch(API_BASE + '/state');
+                const res = await fetch(API_BASE + '/state');
                 const state = await res.json();
 
                 const phase = state.phase || 'lobby';
@@ -636,16 +686,16 @@
                     if (timerInterval) clearInterval(timerInterval);
                     const badge = document.getElementById('phase-badge');
                     badge.textContent = 'End';
-                    badge.className   = 'phase-badge phase-lobby';
+                    badge.className = 'phase-badge phase-lobby';
                     document.getElementById('timer').textContent = '--:--';
-                    document.getElementById('timer').className   = 'timer';
+                    document.getElementById('timer').className = 'timer';
                     return;
                 }
 
                 // Update badge
                 const badge = document.getElementById('phase-badge');
                 badge.textContent = phase.charAt(0).toUpperCase() + phase.slice(1);
-                badge.className   = 'phase-badge phase-' + phase;
+                badge.className = 'phase-badge phase-' + phase;
 
                 updateTimer(state.seconds_left, phase);
             } catch (e) { console.error('fetchEventState:', e); }
@@ -663,7 +713,7 @@
 
             if (phase === 'lobby') {
                 el.textContent = '--:--';
-                el.className   = 'timer';
+                el.className = 'timer';
                 return;
             }
 
@@ -671,7 +721,7 @@
             const baseClass = phase === 'break' ? 'timer break-timer' : 'timer';
             let remaining = seconds;
             el.textContent = fmt(remaining);
-            el.className   = baseClass;
+            el.className = baseClass;
 
             timerInterval = setInterval(() => {
                 remaining--;
