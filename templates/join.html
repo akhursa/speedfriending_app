@@ -47,6 +47,7 @@
             position: relative;
             width: 100%;
             max-width: 375px;
+            padding: 0 20px;
             z-index: 1;
         }
 
@@ -54,14 +55,13 @@
         .logo-mark {
             display: flex;
             justify-content: center;
-            margin-bottom: 40px;
+            margin-bottom: clamp(12px, 4vh, 40px);
             position: relative;
             z-index: 10;
         }
 
         .logo-mark img {
-            width: 80px;
-            /* height: auto; */
+            width: clamp(44px, 8vh, 80px);
         }
 
         /* Main card */
@@ -69,16 +69,16 @@
             background: white;
             border: 1px solid #c82901;
             border-radius: 31px;
-            padding: 48px 28px 40px;
+            padding: clamp(24px, 5vh, 48px) 28px clamp(20px, 4vh, 40px);
             position: relative;
         }
 
         .card-title {
-            font-size: 36px;
+            font-size: clamp(24px, 5vw, 36px);
             font-weight: 600;
             color: rgba(0, 0, 0, 0.7);
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: clamp(4px, 1vh, 10px);
             line-height: 1.2;
         }
 
@@ -87,7 +87,7 @@
             font-weight: 400;
             color: rgba(0, 0, 0, 0.6);
             text-align: center;
-            margin-bottom: 28px;
+            margin-bottom: clamp(12px, 3vh, 28px);
             line-height: 1.5;
         }
 
@@ -118,18 +118,18 @@
 
         /* Form */
         .form-group {
-            margin-bottom: 18px;
+            margin-bottom: clamp(8px, 2vh, 18px);
         }
 
         input[type="text"] {
             display: block;
             width: 100%;
-            height: 57px;
+            height: clamp(44px, 7vh, 57px);
             padding: 0 20px;
             border: 0.5px solid #c82901;
             border-radius: 30px;
             font-family: 'Albert Sans', sans-serif;
-            font-size: 20px;
+            font-size: clamp(16px, 2.5vw, 20px);
             font-weight: 600;
             color: rgba(0, 0, 0, 0.7);
             background: white;
@@ -165,14 +165,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 239px;
-            height: 57px;
-            margin: 24px auto 0;
+            width: min(75%, 239px);
+            height: clamp(44px, 7vh, 57px);
+            margin: clamp(12px, 3vh, 24px) auto 0;
             background: linear-gradient(90deg, #ff9a00 0%, #c82901 100%);
             border: none;
             border-radius: 184px;
             font-family: 'Albert Sans', sans-serif;
-            font-size: 22px;
+            font-size: clamp(18px, 2.8vw, 22px);
             font-weight: 800;
             color: white;
             cursor: pointer;
@@ -230,7 +230,7 @@
         .divider {
             height: 1px;
             background: rgba(200, 41, 1, 0.15);
-            margin: 28px 0;
+            margin: clamp(12px, 2.5vh, 28px) 0;
         }
 
         /* Photo / camera section */
@@ -245,11 +245,11 @@
 
         .photo-section-header {
             text-align: center;
-            margin-bottom: 20px;
+            margin-bottom: clamp(8px, 1.5vh, 20px);
         }
 
         .photo-section-header h2 {
-            font-size: 22px;
+            font-size: clamp(17px, 2.8vw, 22px);
             font-weight: 600;
             color: rgba(0, 0, 0, 0.7);
             margin-bottom: 6px;
@@ -264,14 +264,14 @@
             text-align: center;
             font-size: 12px;
             color: rgba(0, 0, 0, 0.4);
-            margin-bottom: 18px;
+            margin-bottom: clamp(8px, 1.5vh, 18px);
         }
 
         .camera-container {
             position: relative;
-            width: 200px;
-            height: 200px;
-            margin: 0 auto 20px;
+            width: clamp(130px, 24vh, 200px);
+            height: clamp(130px, 24vh, 200px);
+            margin: 0 auto clamp(10px, 2vh, 20px);
             border-radius: 50%;
             overflow: hidden;
             background: #fff5e6;
@@ -388,48 +388,22 @@
         }
 
         @media (max-height: 700px) {
-            .card {
-                padding: 28px 24px 24px;
-            }
-
-            .card-title {
-                font-size: 28px;
-                margin-bottom: 6px;
-            }
-
-            .card-subtitle {
-                font-size: 12px;
-                margin-bottom: 16px;
-            }
-
-            input[type="text"] {
-                height: 48px;
-                font-size: 17px;
-            }
-
-            .btn-primary {
-                height: 48px;
-                font-size: 19px;
-                margin-top: 16px;
-            }
-
-            /* 
-            .logo-mark {
-                margin-bottom: 12px;
-            }
-
-            .logo-mark img {
-                width: 44px;
-            }
-            */
-
-            .form-group {
-                margin-bottom: 12px;
-            }
-
             .form-note {
                 font-size: 11px;
                 margin-top: 5px;
+            }
+
+            .camera-controls {
+                gap: 8px;
+            }
+
+            .btn-camera {
+                padding: 8px 16px;
+                font-size: 13px;
+            }
+
+            .upload-status {
+                font-size: 12px;
             }
         }
     </style>
