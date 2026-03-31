@@ -511,13 +511,21 @@
                                 const state = await response.json();
                                 if (state.phase === 'ended' || state.status === 'ended') {
                                     localStorage.removeItem('speedfriending_participant');
+                                    window.location.reload();
+                                    return false;
                                 } else {
                                     window.location.href = `/events/${joinCode}/participant_view?nickname=${encodeURIComponent(nickname)}`;
                                     return true;
                                 }
+                            } else {
+                                localStorage.removeItem('speedfriending_participant');
+                                window.location.reload();
+                                return false;
                             }
                         } catch (e) {
                             localStorage.removeItem('speedfriending_participant');
+                            window.location.reload();
+                            return false;
                         }
                     }
                 } catch (e) {
