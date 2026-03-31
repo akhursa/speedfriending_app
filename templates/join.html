@@ -499,6 +499,10 @@
                 try {
                     const { nickname, joinCode } = JSON.parse(saved);
                     if (nickname && joinCode) {
+                        if (codeFromUrl && codeFromUrl.toUpperCase() !== joinCode.toUpperCase()) {
+                            localStorage.removeItem('speedfriending_participant');
+                            return false;
+                        }
                         document.body.innerHTML = `
                             <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
                                         height:100vh;background:#fff;font-family:'Albert Sans',sans-serif;color:rgba(0,0,0,0.6);">
