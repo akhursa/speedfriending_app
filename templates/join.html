@@ -19,6 +19,7 @@
             font-family: 'Albert Sans', -apple-system, sans-serif;
             background: #ffffff;
             height: 100vh;
+            height: -webkit-fill-available;
             height: 100dvh;
             display: flex;
             align-items: center;
@@ -55,13 +56,13 @@
         .logo-mark {
             display: flex;
             justify-content: center;
-            margin-bottom: clamp(12px, 4vh, 40px);
+            margin-bottom: clamp(12px, 4dvh, 28px);
             position: relative;
             z-index: 10;
         }
 
         .logo-mark img {
-            width: clamp(44px, 8vh, 80px);
+            width: clamp(40px, 7dvh, 72px);
         }
 
         /* Main card */
@@ -69,7 +70,7 @@
             background: white;
             border: 1px solid #c82901;
             border-radius: 31px;
-            padding: clamp(24px, 5vh, 48px) 28px clamp(20px, 4vh, 40px);
+            padding: clamp(20px, 4dvh, 40px) 28px clamp(16px, 3dvh, 32px);
             position: relative;
         }
 
@@ -78,7 +79,7 @@
             font-weight: 600;
             color: rgba(0, 0, 0, 0.7);
             text-align: center;
-            margin-bottom: clamp(4px, 1vh, 10px);
+            margin-bottom: clamp(4px, 1dvh, 10px);
             line-height: 1.2;
         }
 
@@ -87,7 +88,7 @@
             font-weight: 400;
             color: rgba(0, 0, 0, 0.6);
             text-align: center;
-            margin-bottom: clamp(12px, 3vh, 28px);
+            margin-bottom: clamp(10px, 2.5dvh, 24px);
             line-height: 1.5;
         }
 
@@ -118,13 +119,13 @@
 
         /* Form */
         .form-group {
-            margin-bottom: clamp(8px, 2vh, 18px);
+            margin-bottom: clamp(8px, 2dvh, 18px);
         }
 
         input[type="text"] {
             display: block;
             width: 100%;
-            height: clamp(44px, 7vh, 57px);
+            height: clamp(44px, 6dvh, 52px);
             padding: 0 20px;
             border: 0.5px solid #c82901;
             border-radius: 30px;
@@ -166,8 +167,8 @@
             align-items: center;
             justify-content: center;
             width: min(75%, 239px);
-            height: clamp(44px, 7vh, 57px);
-            margin: clamp(12px, 3vh, 24px) auto 0;
+            height: clamp(44px, 6dvh, 52px);
+            margin: clamp(10px, 2.5dvh, 20px) auto 0;
             background: linear-gradient(90deg, #ff9a00 0%, #c82901 100%);
             border: none;
             border-radius: 184px;
@@ -230,7 +231,7 @@
         .divider {
             height: 1px;
             background: rgba(200, 41, 1, 0.15);
-            margin: clamp(12px, 2.5vh, 28px) 0;
+            margin: clamp(10px, 2dvh, 20px) 0;
         }
 
         /* Photo / camera section */
@@ -245,7 +246,7 @@
 
         .photo-section-header {
             text-align: center;
-            margin-bottom: clamp(8px, 1.5vh, 20px);
+            margin-bottom: clamp(8px, 1.5dvh, 16px);
         }
 
         .photo-section-header h2 {
@@ -264,14 +265,14 @@
             text-align: center;
             font-size: 12px;
             color: rgba(0, 0, 0, 0.4);
-            margin-bottom: clamp(8px, 1.5vh, 18px);
+            margin-bottom: clamp(6px, 1dvh, 14px);
         }
 
         .camera-container {
             position: relative;
-            width: clamp(130px, 24vh, 200px);
-            height: clamp(130px, 24vh, 200px);
-            margin: 0 auto clamp(10px, 2vh, 20px);
+            width: clamp(110px, 18dvh, 170px);
+            height: clamp(110px, 18dvh, 170px);
+            margin: 0 auto clamp(8px, 1.5dvh, 16px);
             border-radius: 50%;
             overflow: hidden;
             background: #fff5e6;
@@ -388,6 +389,22 @@
         }
 
         @media (max-height: 700px) {
+            .logo-mark {
+                margin-bottom: 10px;
+            }
+
+            .logo-mark img {
+                width: 40px;
+            }
+
+            .card {
+                padding: 18px 24px 16px;
+            }
+
+            .card-subtitle {
+                margin-bottom: 10px;
+            }
+
             .form-note {
                 font-size: 11px;
                 margin-top: 5px;
