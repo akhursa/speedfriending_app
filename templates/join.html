@@ -475,7 +475,8 @@
                 <div class="photo-note">Optional — you can skip if you prefer</div>
 
                 <div class="camera-container" id="cameraContainer">
-                    <video id="videoElement" autoplay playsinline style="display: none;"></video>
+                    <!-- muted + playsinline: required on many mobile browsers (e.g. Android Chrome) or preview may not play -->
+                    <video id="videoElement" autoplay playsinline muted webkit-playsinline style="display: none;"></video>
                     <canvas id="photoCanvas" style="display: none;"></canvas>
                     <div class="photo-placeholder" id="photoPlaceholder">
                         <div class="photo-placeholder-icon">📷</div>
@@ -580,15 +581,62 @@
             return code.trim().length >= 4 && code.trim().length <= 10;
         }
 
-        // Camera functions
+        // Camera functions — Android Chrome often needs muted + play(); strict width/height can cause OverconstrainedError
+        function getCameraErrorMessage(err) {
+            if (!err || !err.name) return 'Could not access camera. Please allow camera permissions or skip this step.';
+            if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
+                return 'Camera was blocked. Check site permissions in your browser settings, or skip this step.';
+            }
+            if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                return 'No camera found on this device.';
+            }
+            if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                return 'Camera is in use by another app. Close it and try again.';
+            }
+            if (err.name === 'OverconstrainedError') {
+                return 'This device cannot use the requested camera settings. Try again or skip.';
+            }
+            if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                return 'Camera needs a secure connection (HTTPS). Open this site with https:// or skip the photo.';
+            }
+            return 'Could not access camera. Please allow camera permissions or skip this step.';
+        }
+
+        async function openCameraStream() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('NO_GETUSERMEDIA');
+            }
+            const attempts = [
+                { video: { facingMode: 'user' } },
+                { video: { facingMode: { ideal: 'user' } } },
+                { video: true }
+            ];
+            let lastErr = null;
+            for (const constraints of attempts) {
+                try {
+                    return await navigator.mediaDevices.getUserMedia(constraints);
+                } catch (e) {
+                    lastErr = e;
+                    if (e.name !== 'OverconstrainedError') throw e;
+                }
+            }
+            throw lastErr;
+        }
+
         async function startCamera() {
             const video = document.getElementById('videoElement');
             const container = document.getElementById('cameraContainer');
             try {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
-                });
+                stream = await openCameraStream();
                 video.srcObject = stream;
+                video.muted = true;
+                try {
+                    await video.play();
+                } catch (playErr) {
+                    // Some Android builds need a second tick
+                    await new Promise(r => requestAnimationFrame(r));
+                    await video.play();
+                }
                 video.style.display = 'block';
                 document.getElementById('photoPlaceholder').style.display = 'none';
                 document.getElementById('photoCanvas').style.display = 'none';
@@ -596,15 +644,25 @@
                 document.getElementById('cameraControls').style.display = 'none';
                 document.getElementById('retakeControls').style.display = 'flex';
             } catch (err) {
-                showAlert('Could not access camera. Please allow camera permissions or skip this step.', 'error');
+                if (err.message === 'NO_GETUSERMEDIA') {
+                    showAlert(getCameraErrorMessage({ name: 'SecurityError' }), 'error');
+                } else {
+                    showAlert(getCameraErrorMessage(err), 'error');
+                }
             }
         }
 
         function capturePhoto() {
             const video = document.getElementById('videoElement');
             const canvas = document.getElementById('photoCanvas');
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
+            const w = video.videoWidth;
+            const h = video.videoHeight;
+            if (!w || !h) {
+                showAlert('Camera is not ready yet. Wait a moment and try again.', 'error');
+                return;
+            }
+            canvas.width = w;
+            canvas.height = h;
             const ctx = canvas.getContext('2d');
             ctx.transform(-1, 0, 0, 1, canvas.width, 0);
             ctx.drawImage(video, 0, 0);
@@ -728,7 +786,14 @@
 
         document.getElementById('startCameraBtn').addEventListener('click', startCamera);
         document.getElementById('retakeBtn').addEventListener('click', retakePhoto);
-        document.getElementById('usePhotoBtn').addEventListener('click', () => { capturePhoto(); stopCamera(); proceedToEvent(); });
+        document.getElementById('usePhotoBtn').addEventListener('click', () => {
+            capturePhoto();
+            if (!capturedPhoto) {
+                stopCamera();
+                return;
+            }
+            proceedToEvent();
+        });
         document.getElementById('skipPhotoBtn').addEventListener('click', () => { stopCamera(); proceedToEvent(); });
 
         document.getElementById('joinCode').addEventListener('input', function () { this.classList.remove('error'); });
