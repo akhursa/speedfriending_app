@@ -275,10 +275,21 @@ def auto_advance(
             "auto_advanced": False,
         }
 
-    # Re-read event to guard against concurrent transitions
-    session.refresh(event)
+    # Блокируем строку события в БД и заново загружаем актуальное состояние
+    event = session.exec(
+        select(Event)
+        .where(Event.id == event.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).one()
+
+    # Защита от конкурентного перехода: если фаза уже изменилась пока ждали блокировку
     if event.phase != current_phase:
-        return {"status": "already_advanced", "phase": event.phase, "auto_advanced": False}
+        return {
+            "status": "already_advanced",
+            "phase": event.phase,
+            "auto_advanced": False,
+        }
 
     from services.pairing import make_pairs
 
