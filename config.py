@@ -27,7 +27,12 @@ class Config:
 
     # Timing
     BREAK_DURATION_SECONDS = int(os.getenv("BREAK_DURATION_SECONDS", "60"))
+    if BREAK_DURATION_SECONDS <= 0:
+        BREAK_DURATION_SECONDS = 60
+
     TALK_DURATION_MINUTES = int(os.getenv("TALK_DURATION_MINUTES", "5"))
+    if TALK_DURATION_MINUTES <= 0:
+        TALK_DURATION_MINUTES = 5
 
     # Security
     SECRET_KEY = os.getenv("SECRET_KEY")
