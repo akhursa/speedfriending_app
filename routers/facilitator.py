@@ -197,13 +197,30 @@ def next_round(
             status_code=400, detail="Event not started yet. Use /start_round."
         )
 
+    # 1. Запоминаем текущую фазу до блокировки
+    current_phase = event.phase
+
+    # 2. Блокируем строку события в БД и обновляем объект event
+    event = session.exec(
+        select(Event)
+        .where(Event.id == event.id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    ).one()
+
+    # 3. Проверяем: если другой запрос (например, auto_advance) уже сменил фазу — отменяем выполнение
+    if event.phase != current_phase:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Phase has already been advanced by another process. Current phase: {event.phase}",
+        )
+
     participants = session.exec(
         select(Participant).where(Participant.event_id == event.id)
     ).all()
     if len(participants) < 2:
         raise HTTPException(status_code=400, detail="Need at least 2 participants")
 
-    current_phase = event.phase
     now = datetime.now(MINSK_TZ)
 
     if current_phase == "talk":
